@@ -1,0 +1,28 @@
+# .cursorrules - Project Intelligence for "Season of Grind"
+
+## Project Context
+- **Name:** Season of Grind (Gym Wrapped)
+- **Stack:** React, Vite, TypeScript, Tailwind CSS, Shadcn UI.
+- **State Management:** React Context (Audio), Local State.
+- **Animation:**
+  - **GSAP (GreenSock):** PRIMARY choice for scroll-based animations (ScrollTrigger) and complex timelines.
+  - **Framer Motion:** Secondary choice for simple UI entry/exit transitions.
+
+## Design System (Strict Adherence)
+- **Theme:** Dark Mode Only (`#050505`). No light mode code.
+- **Typography:**
+  - Headings: `font-display` (Montserrat). Use `uppercase tracking-tighter`.
+  - Data/Numbers: `font-mono` (JetBrains Mono).
+- **Colors:**
+  - Background: `bg-background` (Deep Black).
+  - Accent: Neon Green `[#CCFF00]`. Use for highlights, active states, and data points.
+- **Effects:** Use "Glassmorphism" (blur, transparency) for cards (`bg-white/5 backdrop-blur-md`).
+
+## Code Structure Rules
+- **Slides:** All main sections are located in `src/components/slides/`.
+- **Data:** Use `src/data/wrappedData.json` (to be created) as the single source of truth.
+- **Components:** Use Shadcn components (`@/components/ui`) whenever possible.
+
+## Behavior
+- When implementing animations, always check if `gsap` is installed. If not, ask to install it.
+- Ensure the **Audio Widget** persists across slide changes (use Context).
