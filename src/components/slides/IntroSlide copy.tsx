@@ -43,27 +43,32 @@ const IntroSlide = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Breathing animation for circle - scale and opacity
+  // Breathing animation for circle - scale and opacity (only when not scrolling)
   useEffect(() => {
-    if (circleRef.current) {
-      // Scale animation (breathing)
-      gsap.to(circleRef.current, {
-        scale: 1.05,
-        duration: 2.5,
-        ease: 'sine.inOut',
-        repeat: -1,
-        yoyo: true,
-      });
+    if (!circleRef.current) return;
 
-      // Opacity animation (breathing glow)
-      gsap.to(circleRef.current, {
-        opacity: 0.9,
-        duration: 2,
-        ease: 'sine.inOut',
-        repeat: -1,
-        yoyo: true,
-      });
-    }
+    // Scale animation (breathing) - will be paused during scroll
+    const breathingScale = gsap.to(circleRef.current, {
+      scale: 1.05,
+      duration: 2.5,
+      ease: 'sine.inOut',
+      repeat: -1,
+      yoyo: true,
+      paused: false,
+    });
+
+    // Opacity animation (breathing glow)
+    const breathingOpacity = gsap.to(circleRef.current, {
+      opacity: 0.9,
+      duration: 2,
+      ease: 'sine.inOut',
+      repeat: -1,
+      yoyo: true,
+      paused: false,
+    });
+
+    // Store animations for later control
+    (circleRef.current as any).breathingAnimations = { breathingScale, breathingOpacity };
 
     // Aggressive blinking for text inside circle
     if (circleTextRef.current) {
@@ -77,67 +82,75 @@ const IntroSlide = () => {
     }
   }, []);
 
-  // ScrollTrigger animation - explosion effect
+  // ScrollTrigger animation - Warp Drive / Through the Ring effect
   useEffect(() => {
     if (!sectionRef.current || !circleRef.current || !headerRef.current) return;
 
     const ctx = gsap.context(() => {
-      // Animate circle scaling - aggressive explosion effect
-      // Circle is now larger (w-64), so scale needs to be even more aggressive
-      gsap.to(circleRef.current, {
-        scale: 100,
-        duration: 1,
-        ease: 'power3.in',
+      // Create timeline for coordinated animation
+      const tl = gsap.timeline({
         scrollTrigger: {
           trigger: sectionRef.current,
           start: 'top top',
           end: 'bottom top',
           scrub: 0.5,
+          onEnter: () => {
+            // Pause breathing animations when scrolling starts
+            const breathingAnims = (circleRef.current as any)?.breathingAnimations;
+            if (breathingAnims) {
+              breathingAnims.breathingScale?.pause();
+              breathingAnims.breathingOpacity?.pause();
+            }
+          },
+          onLeaveBack: () => {
+            // Resume breathing animations when scrolling back
+            const breathingAnims = (circleRef.current as any)?.breathingAnimations;
+            if (breathingAnims) {
+              breathingAnims.breathingScale?.resume();
+              breathingAnims.breathingOpacity?.resume();
+            }
+          },
         },
       });
 
-      // Fade out header and add blur
-      gsap.to(headerRef.current, {
-        opacity: 0,
-        filter: 'blur(20px)',
-        duration: 1,
-        ease: 'power2.in',
-        scrollTrigger: {
-          trigger: sectionRef.current,
-          start: 'top top',
-          end: 'bottom top',
-          scrub: 0.5,
+      // Header and Footer: Scale out, blur, and fade early in the process
+      // Using < operator to make this happen early (at 20% of the scroll)
+      tl.to(
+        [headerRef.current, scrollIndicatorRef.current],
+        {
+          scale: 1.5,
+          filter: 'blur(20px)',
+          opacity: 0,
+          duration: 1,
+          ease: 'power3.out',
         },
-      });
+        '<0.2' // Start at 20% of timeline
+      );
 
-      // Fade out circle text
+      // Circle: Massive scale up (1 → 150) - the main warp effect
+      tl.to(
+        circleRef.current,
+        {
+          scale: 150,
+          borderWidth: '3px', // Increase border width to keep it visible
+          duration: 1,
+          ease: 'power3.in',
+        },
+        '<' // Start slightly after header/footer animation
+      );
+
+      // Circle text: Fade out as circle grows
       if (circleTextRef.current) {
-        gsap.to(circleTextRef.current, {
-          opacity: 0,
-          duration: 0.5,
-          ease: 'power2.in',
-          scrollTrigger: {
-            trigger: sectionRef.current,
-            start: 'top top',
-            end: 'bottom top',
-            scrub: 0.5,
+        tl.to(
+          circleTextRef.current,
+          {
+            opacity: 0,
+            scale: 0.5,
+            duration: 0.3,
+            ease: 'power2.in',
           },
-        });
-      }
-
-      // Fade out scroll indicator
-      if (scrollIndicatorRef.current) {
-        gsap.to(scrollIndicatorRef.current, {
-          opacity: 0,
-          duration: 0.3,
-          ease: 'power2.in',
-          scrollTrigger: {
-            trigger: sectionRef.current,
-            start: 'top top',
-            end: 'bottom top',
-            scrub: 0.5,
-          },
-        });
+          '<0.1' // Start very early
+        );
       }
     }, sectionRef);
 
@@ -182,10 +195,11 @@ const IntroSlide = () => {
       </div>
 
       {/* Central Circle - The Trigger */}
-      <div className="absolute inset-0 flex items-center justify-center z-10">
+      <div className="absolute inset-0 flex items-center justify-center z-50">
         <div
           ref={circleRef}
           className="w-48 h-48 md:w-64 md:h-64 rounded-full border border-[#CCFF00] bg-transparent flex items-center justify-center shadow-[0_0_15px_rgba(204,255,0,0.3)]"
+          style={{ borderWidth: '1px' }} // Initial border width, will be animated
         >
           <p
             ref={circleTextRef}

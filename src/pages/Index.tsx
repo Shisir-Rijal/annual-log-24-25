@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import ProgressBar from '@/components/ProgressBar';
 import AudioWidget from '@/components/AudioWidget';
 import IntroSlide from '@/components/slides/IntroSlide';
+import ScaleSlide from '@/components/slides/ScaleSlide';
 import FrequencySlide from '@/components/slides/FrequencySlide';
 import GrindSlide from '@/components/slides/GrindSlide';
 import ConsistencySlide from '@/components/slides/ConsistencySlide';
@@ -12,7 +13,7 @@ import MachineSlide from '@/components/slides/MachineSlide';
 import BodySlide from '@/components/slides/BodySlide';
 import ArchetypeSlide from '@/components/slides/ArchetypeSlide';
 
-const TOTAL_SECTIONS = 10;
+const TOTAL_SECTIONS = 11;
 
 const Index = () => {
   const [currentSection, setCurrentSection] = useState(0);
@@ -47,6 +48,7 @@ const Index = () => {
         className="scroll-container"
       >
         <IntroSlide />
+        <ScaleSlide />
         <FrequencySlide />
         <GrindSlide />
         <ConsistencySlide />
