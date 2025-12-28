@@ -11,9 +11,11 @@ import RankingSlide from '@/components/slides/RankingSlide';
 import VolumeSlide from '@/components/slides/VolumeSlide';
 import MachineSlide from '@/components/slides/MachineSlide';
 import BodySlide from '@/components/slides/BodySlide';
+import SoundtrackSlide from '@/components/slides/SoundtrackSlide';
 import ArchetypeSlide from '@/components/slides/ArchetypeSlide';
+import OutroSlide from '@/components/slides/OutroSlide';
 
-const TOTAL_SECTIONS = 11;
+const TOTAL_SECTIONS = 13;
 
 const Index = () => {
   const [currentSection, setCurrentSection] = useState(0);
@@ -57,7 +59,9 @@ const Index = () => {
         <VolumeSlide />
         <MachineSlide />
         <BodySlide />
+        <SoundtrackSlide />
         <ArchetypeSlide />
+        <OutroSlide />
       </div>
     </div>
   );
