@@ -5,9 +5,11 @@ import IntroSlide from '@/components/slides/IntroSlide';
 import ScaleSlide from '@/components/slides/ScaleSlide';
 import FrequencySlide from '@/components/slides/FrequencySlide';
 import GrindSlide from '@/components/slides/GrindSlide';
+import HeatmapSlide from '@/components/slides/HeatmapSlide';
 import ConsistencySlide from '@/components/slides/ConsistencySlide';
 import PeakMonthSlide from '@/components/slides/PeakMonthSlide';
 import RankingSlide from '@/components/slides/RankingSlide';
+import TopExercisesSlide from '@/components/slides/TopExercisesSlide';
 import VolumeSlide from '@/components/slides/VolumeSlide';
 import MachineSlide from '@/components/slides/MachineSlide';
 import BodySlide from '@/components/slides/BodySlide';
@@ -15,7 +17,7 @@ import SoundtrackSlide from '@/components/slides/SoundtrackSlide';
 import ArchetypeSlide from '@/components/slides/ArchetypeSlide';
 import OutroSlide from '@/components/slides/OutroSlide';
 
-const TOTAL_SECTIONS = 13;
+const TOTAL_SECTIONS = 15;
 
 const Index = () => {
   const [currentSection, setCurrentSection] = useState(0);
@@ -53,9 +55,11 @@ const Index = () => {
         <ScaleSlide />
         <FrequencySlide />
         <GrindSlide />
+        <HeatmapSlide />
         <ConsistencySlide />
         <PeakMonthSlide />
         <RankingSlide />
+        <TopExercisesSlide />
         <VolumeSlide />
         <MachineSlide />
         <BodySlide />
