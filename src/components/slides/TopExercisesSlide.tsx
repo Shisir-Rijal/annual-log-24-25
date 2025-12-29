@@ -1,4 +1,4 @@
-import { useMemo, useRef, useLayoutEffect } from 'react';
+import { useMemo, useRef, useLayoutEffect, useState } from 'react';
 import { useWorkoutData } from '../../context/DataProvider';
 import { gsap } from 'gsap';
 import { Link, Droplet, Shield } from 'lucide-react';
@@ -8,6 +8,7 @@ const TopExercisesSlide = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const signatureRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const [expandedExercise, setExpandedExercise] = useState<string | null>(null);
 
   // Calculate top 5 exercises by frequency
   const arsenal = useMemo(() => {
@@ -91,14 +92,17 @@ const TopExercisesSlide = () => {
       });
 
       // Gear slots fade in
-      gsap.from('.gear-slot', {
-        y: 20,
-        opacity: 0,
-        duration: 0.6,
-        stagger: 0.1,
-        ease: 'power2.out',
-        delay: 1.2,
-      });
+      gsap.fromTo('.gear-slot', 
+        { opacity: 0, y: 20 },
+        { 
+          opacity: 1, 
+          y: 0,
+          duration: 0.6,
+          stagger: 0.1,
+          ease: 'power2.out',
+          delay: 1.2,
+        }
+      );
     }, containerRef);
 
     return () => ctx.revert();
@@ -211,12 +215,12 @@ const TopExercisesSlide = () => {
           {/* RIGHT SIDE - Support Arsenal List (40%) */}
           <div 
             ref={listRef}
-            className="col-span-12 md:col-span-5"
+            className="col-span-12 md:col-span-5 flex flex-col gap-6"
           >
             {/* List Container */}
-            <div className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden">
+            <div className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden flex-grow flex flex-col min-h-0">
               {/* Header */}
-              <div className="p-6 border-b border-white/10">
+              <div className="p-6 border-b border-white/10 flex-shrink-0">
                 <h3 className="text-display text-2xl font-bold text-white mb-1">
                   THE ARSENAL
                 </h3>
@@ -225,36 +229,98 @@ const TopExercisesSlide = () => {
                 </p>
               </div>
 
-              {/* List Items */}
-              <div className="divide-y divide-white/5">
+              {/* List Items - Scrollable */}
+              <div className="divide-y divide-white/5 overflow-y-auto flex-1">
                 {arsenal.support.map((exercise, index) => {
                   const barWidth = (exercise.count / arsenal.maxCount) * 100;
                   const rank = String(index + 2).padStart(2, '0');
+                  const isExpanded = expandedExercise === exercise.name;
+
+                  const handleToggle = () => {
+                    if (isExpanded) {
+                      setExpandedExercise(null);
+                    } else {
+                      setExpandedExercise(exercise.name);
+                    }
+                  };
 
                   return (
                     <div 
                       key={exercise.name}
-                      className="arsenal-item group px-6 py-5 hover:bg-white/5 transition-colors duration-200 cursor-pointer"
+                      className="arsenal-item group"
                     >
-                      <div className="flex items-center gap-4">
-                        {/* Rank */}
-                        <span className="font-mono text-xl font-bold text-gray-500 group-hover:text-[#CCFF00] transition-colors w-8 flex-shrink-0">
-                          {rank}
-                        </span>
+                      {/* Header Row - Always Visible */}
+                      <div 
+                        className="px-6 py-5 hover:bg-white/5 transition-colors duration-200 cursor-pointer"
+                        onClick={handleToggle}
+                      >
+                        <div className="flex items-center gap-4">
+                          {/* Rank */}
+                          <span className={`font-mono text-xl font-bold transition-colors w-8 flex-shrink-0 ${
+                            isExpanded ? 'text-[#CCFF00]' : 'text-gray-500 group-hover:text-[#CCFF00]'
+                          }`}>
+                            {rank}
+                          </span>
 
-                        {/* Content */}
-                        <div className="flex-1 min-w-0">
-                          {/* Name */}
-                          <p className="font-display text-base font-bold text-white truncate group-hover:text-[#CCFF00] transition-colors mb-2">
-                            {exercise.name}
-                          </p>
+                          {/* Content */}
+                          <div className="flex-1 min-w-0">
+                            {/* Name */}
+                            <p className={`font-display text-base font-bold truncate transition-colors mb-2 ${
+                              isExpanded ? 'text-[#CCFF00]' : 'text-white group-hover:text-[#CCFF00]'
+                            }`}>
+                              {exercise.name}
+                            </p>
 
-                          {/* Frequency Bar */}
-                          <div className="h-0.5 bg-gray-900 rounded-full overflow-hidden">
-                            <div 
-                              className="freq-bar-fill h-full bg-gradient-to-r from-[#CCFF00] to-[#88aa00] rounded-full"
-                              style={{ width: `${barWidth}%` }}
-                            />
+                            {/* Frequency Bar */}
+                            <div className="h-0.5 bg-gray-900 rounded-full overflow-hidden">
+                              <div 
+                                className="freq-bar-fill h-full bg-gradient-to-r from-[#CCFF00] to-[#88aa00] rounded-full"
+                                style={{ width: `${barWidth}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Details Section - Accordion */}
+                      <div 
+                        className={`overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out ${
+                          isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                        }`}
+                      >
+                        <div className="px-6 pb-5 pt-0 border-t border-white/5">
+                          {/* Stats Grid */}
+                          <div className="grid grid-cols-3 gap-4 pt-4">
+                            {/* Total Sets */}
+                            <div className="space-y-1">
+                              <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
+                                TOTAL SETS
+                              </p>
+                              <p className="text-base font-display font-bold text-primary">
+                                {exercise.totalSets}
+                              </p>
+                            </div>
+
+                            {/* Max Weight */}
+                            <div className="space-y-1">
+                              <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
+                                MAX WEIGHT
+                              </p>
+                              <p className="text-base font-display font-bold text-primary">
+                                {exercise.maxWeight}
+                                <span className="text-xs text-muted-foreground ml-1">kg</span>
+                              </p>
+                            </div>
+
+                            {/* Mastery Level */}
+                            <div className="space-y-1">
+                              <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
+                                MASTERY LVL
+                              </p>
+                              <p className="text-base font-display font-bold text-primary neon-text">
+                                {exercise.masteryLevel}
+                              </p>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -283,44 +349,42 @@ const TopExercisesSlide = () => {
                 }
               </div>
             </div>
-          </div>
-          </div>
-        </div>
 
-        {/* Gear Section - Bottom Row */}
-        <div className="flex-shrink-0 flex justify-center">
-          <div className="w-full max-w-7xl">
-            {/* Label */}
-            <p className="font-mono text-xs text-muted-foreground tracking-widest uppercase mb-4 text-center">
-              EQUIPPED GEAR
-            </p>
+            {/* Gear Section */}
+            <div className="flex-shrink-0">
+              {/* Label */}
+              <p className="font-mono text-xs text-muted-foreground tracking-widest uppercase mb-3">
+                EQUIPPED GEAR
+              </p>
 
-            {/* Inventory Slots */}
-            <div className="flex justify-center gap-4">
-              {/* Slot 1: Lifting Straps */}
-              <div className="gear-slot group relative bg-black/40 backdrop-blur-sm border border-white/20 rounded-lg p-4 w-24 h-24 flex flex-col items-center justify-center transition-all duration-300 hover:border-[#CCFF00]/50 hover:shadow-[0_0_15px_rgba(204,255,0,0.2)]">
-                <Link className="w-8 h-8 text-gray-400 group-hover:text-[#CCFF00] transition-colors mb-2" />
-                <p className="font-mono text-[10px] text-gray-500 group-hover:text-[#CCFF00] transition-colors uppercase tracking-wider">
-                  STRAPS
-                </p>
-              </div>
+              {/* Inventory Slots */}
+              <div className="flex gap-4">
+                {/* Slot 1: Lifting Straps */}
+                <div className="gear-slot group relative bg-black/40 backdrop-blur-sm border border-white/20 rounded-lg p-4 w-24 h-24 flex flex-col items-center justify-center transition-all duration-300 hover:border-[#CCFF00]/50 hover:shadow-[0_0_15px_rgba(204,255,0,0.2)]">
+                  <Link className="w-8 h-8 text-gray-400 group-hover:text-[#CCFF00] transition-colors mb-2" />
+                  <p className="font-mono text-[10px] text-gray-500 group-hover:text-[#CCFF00] transition-colors uppercase tracking-wider">
+                    STRAPS
+                  </p>
+                </div>
 
-              {/* Slot 2: Hydration */}
-              <div className="gear-slot group relative bg-black/40 backdrop-blur-sm border border-white/20 rounded-lg p-4 w-24 h-24 flex flex-col items-center justify-center transition-all duration-300 hover:border-[#CCFF00]/50 hover:shadow-[0_0_15px_rgba(204,255,0,0.2)]">
-                <Droplet className="w-8 h-8 text-gray-400 group-hover:text-[#CCFF00] transition-colors mb-2" />
-                <p className="font-mono text-[10px] text-gray-500 group-hover:text-[#CCFF00] transition-colors uppercase tracking-wider">
-                  H2O
-                </p>
-              </div>
+                {/* Slot 2: Hydration */}
+                <div className="gear-slot group relative bg-black/40 backdrop-blur-sm border border-white/20 rounded-lg p-4 w-24 h-24 flex flex-col items-center justify-center transition-all duration-300 hover:border-[#CCFF00]/50 hover:shadow-[0_0_15px_rgba(204,255,0,0.2)]">
+                  <Droplet className="w-8 h-8 text-gray-400 group-hover:text-[#CCFF00] transition-colors mb-2" />
+                  <p className="font-mono text-[10px] text-gray-500 group-hover:text-[#CCFF00] transition-colors uppercase tracking-wider">
+                    H2O
+                  </p>
+                </div>
 
-              {/* Slot 3: Sweat Shield */}
-              <div className="gear-slot group relative bg-black/40 backdrop-blur-sm border border-white/20 rounded-lg p-4 w-24 h-24 flex flex-col items-center justify-center transition-all duration-300 hover:border-[#CCFF00]/50 hover:shadow-[0_0_15px_rgba(204,255,0,0.2)]">
-                <Shield className="w-8 h-8 text-gray-400 group-hover:text-[#CCFF00] transition-colors mb-2" />
-                <p className="font-mono text-[10px] text-gray-500 group-hover:text-[#CCFF00] transition-colors uppercase tracking-wider">
-                  TOWEL
-                </p>
+                {/* Slot 3: Sweat Shield */}
+                <div className="gear-slot group relative bg-black/40 backdrop-blur-sm border border-white/20 rounded-lg p-4 w-24 h-24 flex flex-col items-center justify-center transition-all duration-300 hover:border-[#CCFF00]/50 hover:shadow-[0_0_15px_rgba(204,255,0,0.2)]">
+                  <Shield className="w-8 h-8 text-gray-400 group-hover:text-[#CCFF00] transition-colors mb-2" />
+                  <p className="font-mono text-[10px] text-gray-500 group-hover:text-[#CCFF00] transition-colors uppercase tracking-wider">
+                    TOWEL
+                  </p>
+                </div>
               </div>
             </div>
+          </div>
           </div>
         </div>
       </div>
