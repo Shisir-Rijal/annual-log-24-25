@@ -1,42 +1,42 @@
 export const TOP_SONGS = [
   {
     id: 1,
-    title: "Can't Tell Me Nothing",
+    title: "Black Skinhead",
     artist: "Kanye West",
-    cover: "https://upload.wikimedia.org/wikipedia/en/7/70/Graduation_%28album%29.jpg",
-    quote: "Pure confidence energy", // Replace with your own text
+    cover: "https://upload.wikimedia.org/wikipedia/en/0/03/Yeezus_album_cover.png",
+    quote: "Pure confidence energy",
     color: "#FF00FF" // Magenta Neon
   },
   {
     id: 2,
-    title: "SICKO MODE",
-    artist: "Travis Scott",
-    cover: "https://upload.wikimedia.org/wikipedia/en/4/42/Travis_Scott_-_Astroworld.jpg",
-    quote: "Late night grind anthem", // Replace with your own text
+    title: "ILuvMyCliqueLikeKanyeWest",
+    artist: "XXXTENTACION",
+    cover: "https://upload.wikimedia.org/wikipedia/en/7/7e/XXXTENTACION_-_Revenge.png",
+    quote: "Late night grind anthem",
     color: "#FFA500" // Orange Neon
   },
   {
     id: 3,
-    title: "Starboy",
-    artist: "The Weeknd",
-    cover: "https://upload.wikimedia.org/wikipedia/en/3/39/The_Weeknd_-_Starboy.png",
-    quote: "Main character energy", // Replace with your own text
+    title: "family ties",
+    artist: "Baby Keem",
+    cover: "https://upload.wikimedia.org/wikipedia/en/9/9a/Baby_Keem_-_The_Melodic_Blue.png",
+    quote: "Main character energy",
     color: "#FF0000" // Red Neon
   },
   {
     id: 4,
-    title: "Till I Collapse",
-    artist: "Eminem",
-    cover: "https://upload.wikimedia.org/wikipedia/en/3/35/The_Eminem_Show.jpg",
-    quote: "Never give up mentality", // Replace with your own text
+    title: "KING",
+    artist: "XXXTENTACION",
+    cover: "https://upload.wikimedia.org/wikipedia/en/5/51/XXXTENTACION_-_%3F_%28Album%29.png",
+    quote: "Never give up mentality",
     color: "#CCFF00" // Green Neon
   },
   {
     id: 5,
-    title: "Stronger",
-    artist: "Kanye West",
-    cover: "https://upload.wikimedia.org/wikipedia/en/7/70/Graduation_%28album%29.jpg",
-    quote: "Push harder every rep", // Replace with your own text
+    title: "440 Babys",
+    artist: "Dante YN",
+    cover: "https://i.scdn.co/image/ab67616d0000b2731234567890abcdef12345678", // Placeholder - bitte ersetzen falls verfügbar
+    quote: "Push harder every rep",
     color: "#00FFFF" // Cyan Neon
   }
 ];

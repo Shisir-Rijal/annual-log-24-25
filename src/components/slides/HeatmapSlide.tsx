@@ -97,13 +97,15 @@ const HeatmapSlide = () => {
       <div className="absolute inset-0 flex flex-col items-center justify-center px-6">
         {/* Header */}
         <div className="mb-8 text-center">
-          <p className="font-mono text-xs text-gray-500 uppercase tracking-widest mb-2">
-            ACTIVITY_GRID
-          </p>
-          <h2 className="text-display text-large text-center">
+          <h2 className="text-display text-huge text-center mb-2">
             <span className="text-foreground">YOUR</span>
-            <span className="text-primary neon-text"> RHYTHM</span>
+            <br />
+            <span className="text-primary neon-text">RHYTHM</span>
           </h2>
+          
+          <p className="font-mono text-sm text-muted-foreground mb-10">
+            CONSISTENCY OVER 5 MONTHS
+          </p>
         </div>
 
         {/* Heatmap Container */}

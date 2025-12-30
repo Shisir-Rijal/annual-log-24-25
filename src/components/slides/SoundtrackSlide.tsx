@@ -1,30 +1,68 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { TOP_SONGS } from '../../data/topSongs';
 
 const SoundtrackSlide = () => {
   const [hoveredId, setHoveredId] = useState<number | null>(null);
-  const [playingId, setPlayingId] = useState<number | null>(null);
+  const [playingSongId, setPlayingSongId] = useState<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const handlePlay = useCallback((song: typeof TOP_SONGS[0]) => {
-    // Stop any currently playing audio
+  // Cleanup: Stop audio when component unmounts (user scrolls away)
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        audioRef.current = null;
+      }
+      setPlayingSongId(null);
+    };
+  }, []);
+
+  // Stop current audio helper
+  const stopAudio = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
+      audioRef.current = null;
+    }
+    setPlayingSongId(null);
+  }, []);
+
+  const handlePlay = useCallback((song: typeof TOP_SONGS[0]) => {
+    // Case A: Same song clicked -> Toggle (stop)
+    if (playingSongId === song.id) {
+      stopAudio();
+      console.log(`[SoundtrackSlide] Stopped: ${song.title} by ${song.artist}`);
+      return;
     }
 
-    console.log(`[SoundtrackSlide] Playing: ${song.title} by ${song.artist}`);
-    setPlayingId(song.id);
+    // Case B: Different song clicked -> Stop current, play new
+    stopAudio();
 
-    // Initialize audio with placeholder path
+    console.log(`[SoundtrackSlide] Playing: ${song.title} by ${song.artist}`);
+    setPlayingSongId(song.id);
+
+    // Initialize audio
     const audioPath = `/music/${song.id}.mp3`;
     const audio = new Audio(audioPath);
     audioRef.current = audio;
 
-    audio.play().catch((e) => {
-      console.warn('[SoundtrackSlide] Audio file not found or blocked:', audioPath, e);
+    // Handle audio events
+    audio.addEventListener('ended', () => {
+      stopAudio();
     });
-  }, []);
+
+    audio.addEventListener('error', (e) => {
+      console.error('[SoundtrackSlide] Audio error:', audioPath, e);
+      stopAudio();
+    });
+
+    // Play audio
+    audio.play().catch((e) => {
+      console.error('[SoundtrackSlide] Audio playback failed:', audioPath, e);
+      stopAudio();
+    });
+  }, [playingSongId, stopAudio]);
 
   return (
     <section className="section-slide bg-gradient-slide-10 noise">
@@ -47,7 +85,7 @@ const SoundtrackSlide = () => {
           <div className="flex flex-col gap-3">
             {TOP_SONGS.map((song) => {
               const isHovered = hoveredId === song.id;
-              const isPlaying = playingId === song.id;
+              const isPlaying = playingSongId === song.id;
 
               return (
                 <div
@@ -72,15 +110,13 @@ const SoundtrackSlide = () => {
                       background: 'repeating-radial-gradient(#111 0, #111 2px, #1a1a1a 3px, #222 4px)'
                     } as React.CSSProperties}
                   >
-                    {/* Spinning Inner Disc */}
+                    {/* Spinning Inner Disc - Fast spin only when playing, slow idle otherwise */}
                     <div
                       className={`
                         w-full h-full rounded-full flex items-center justify-center
                         ${isPlaying 
                           ? 'animate-[spin_1.5s_linear_infinite]' 
-                          : isHovered 
-                            ? '[animation-play-state:paused]'
-                            : 'animate-[spin_8s_linear_infinite]'
+                          : 'animate-[spin_12s_linear_infinite]'
                         }
                       `}
                     >
