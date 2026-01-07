@@ -11,7 +11,7 @@ export const TOP_SONGS = [
     id: 2,
     title: "ILuvMyCliqueLikeKanyeWest",
     artist: "XXXTENTACION",
-    cover: "https://upload.wikimedia.org/wikipedia/en/7/7e/XXXTENTACION_-_Revenge.png",
+    cover: "/music/covers/2.jpg",
     quote: "Late night grind anthem",
     color: "#FFA500" // Orange Neon
   },
@@ -19,7 +19,7 @@ export const TOP_SONGS = [
     id: 3,
     title: "family ties",
     artist: "Baby Keem",
-    cover: "https://upload.wikimedia.org/wikipedia/en/9/9a/Baby_Keem_-_The_Melodic_Blue.png",
+    cover: "/music/covers/3.jpg",
     quote: "Main character energy",
     color: "#FF0000" // Red Neon
   },
@@ -27,7 +27,7 @@ export const TOP_SONGS = [
     id: 4,
     title: "KING",
     artist: "XXXTENTACION",
-    cover: "https://upload.wikimedia.org/wikipedia/en/5/51/XXXTENTACION_-_%3F_%28Album%29.png",
+    cover: "/music/covers/4.jpg",
     quote: "Never give up mentality",
     color: "#CCFF00" // Green Neon
   },
@@ -35,7 +35,7 @@ export const TOP_SONGS = [
     id: 5,
     title: "440 Babys",
     artist: "Dante YN",
-    cover: "https://i.scdn.co/image/ab67616d0000b2731234567890abcdef12345678", // Placeholder - bitte ersetzen falls verfügbar
+    cover: "/music/covers/5.jpg",
     quote: "Push harder every rep",
     color: "#00FFFF" // Cyan Neon
   }

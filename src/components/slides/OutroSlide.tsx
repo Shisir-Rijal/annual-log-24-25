@@ -47,7 +47,7 @@ const OutroSlide = () => {
   };
 
   return (
-    <section className="section-slide bg-black noise relative overflow-hidden flex items-center justify-center">
+    <section className="section-slide bg-black noise">
       {/* BACKGROUND FX */}
       <div className="absolute inset-0 z-0 opacity-30">
         <div className="absolute w-full h-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-gray-900 to-black"></div>
