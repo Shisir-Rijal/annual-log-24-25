@@ -1,65 +1,68 @@
-import React, { createContext, useContext, useRef, useState, useCallback, useEffect } from 'react';
+import { createContext, useContext, useRef, useState, useCallback, useEffect } from 'react';
 
-interface PlayBGMOptions {
-  startTime?: number;
-  loop?: boolean;
-}
+// ============================================
+// SIMPLIFIED AUDIO ARCHITECTURE
+// Single BGM loop + SFX + Smart Ducking
+// ============================================
+
+const SOUNDTRACK_PATH = '/audio/soundtrack_2.mp3';
 
 interface AudioContextType {
   // State
-  bgmVolume: number;
-  sfxVolume: number;
-  isMuted: boolean;
-  currentBgmPath: string | null;
   isPlaying: boolean;
+  isMuted: boolean;
+  volume: number;
+  isVinylPlaying: boolean;
 
   // BGM Controls
-  playBGM: (path: string, options?: PlayBGMOptions) => void;
-  pauseBGM: () => void;
-  resumeBGM: () => void;
-  stopBGM: () => void;
-  fadeBGM: (toVolume: number, duration: number) => void;
-  getBgmCurrentTime: () => number;
-  seekBGM: (time: number) => void;
+  playMainBGM: (startTime?: number) => void;
+  pauseMainBGM: () => void;
+  resumeMainBGM: () => void;
+  setBGMVolume: (volume: number) => void;
 
   // SFX Controls
-  playSFX: (path: string) => void;
+  playSFX: (path: string) => HTMLAudioElement | null;
+
+  // Smart Ducking (for SoundtrackSlide)
+  startVinylMode: () => void;
+  stopVinylMode: () => void;
 
   // Settings
-  setBgmVolume: (volume: number) => void;
-  setSfxVolume: (volume: number) => void;
   toggleMute: () => void;
 }
 
 const AudioContext = createContext<AudioContextType | null>(null);
 
 export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // State
-  const [bgmVolume, setBgmVolumeState] = useState(0.3);
-  const [sfxVolume, setSfxVolumeState] = useState(0.8);
-  const [isMuted, setIsMuted] = useState(false);
-  const [currentBgmPath, setCurrentBgmPath] = useState<string | null>(null);
+  // ============================================
+  // STATE
+  // ============================================
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [volume, setVolumeState] = useState(0.5);
+  const [isVinylPlaying, setIsVinylPlaying] = useState(false);
 
-  // Refs for persistent audio instances
-  const bgmAudioRef = useRef<HTMLAudioElement | null>(null);
+  // ============================================
+  // REFS
+  // ============================================
+  const bgmRef = useRef<HTMLAudioElement | null>(null);
+  const savedVolumeRef = useRef(0.5); // Store volume before ducking
   const fadeIntervalRef = useRef<number | null>(null);
   const isUnlockedRef = useRef(false);
 
-  // Unlock audio context on first user interaction
+  // ============================================
+  // AUDIO CONTEXT UNLOCK (Browser requirement)
+  // ============================================
   useEffect(() => {
     const unlockAudio = () => {
       if (!isUnlockedRef.current) {
-        // Create a silent audio context to unlock
         const silentAudio = new Audio();
         silentAudio.volume = 0;
         silentAudio.play().catch(() => {});
         isUnlockedRef.current = true;
-        console.log('[AudioProvider] Audio context unlocked');
       }
     };
 
-    // Listen for user interaction to unlock audio
     const events = ['click', 'touchstart', 'keydown'];
     events.forEach(event => window.addEventListener(event, unlockAudio, { once: true }));
 
@@ -68,19 +71,23 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
   }, []);
 
-  // Update BGM volume when state changes
+  // ============================================
+  // VOLUME SYNC
+  // ============================================
   useEffect(() => {
-    if (bgmAudioRef.current) {
-      bgmAudioRef.current.volume = isMuted ? 0 : bgmVolume;
+    if (bgmRef.current && !isVinylPlaying) {
+      bgmRef.current.volume = isMuted ? 0 : volume;
     }
-  }, [bgmVolume, isMuted]);
+  }, [volume, isMuted, isVinylPlaying]);
 
-  // Cleanup on unmount
+  // ============================================
+  // CLEANUP
+  // ============================================
   useEffect(() => {
     return () => {
-      if (bgmAudioRef.current) {
-        bgmAudioRef.current.pause();
-        bgmAudioRef.current = null;
+      if (bgmRef.current) {
+        bgmRef.current.pause();
+        bgmRef.current = null;
       }
       if (fadeIntervalRef.current) {
         clearInterval(fadeIntervalRef.current);
@@ -92,139 +99,126 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // BGM CONTROLS
   // ============================================
 
-  const playBGM = useCallback((path: string, options?: PlayBGMOptions) => {
-    const { startTime = 0, loop = true } = options || {};
+  /**
+   * playMainBGM - Starts the main soundtrack loop
+   * @param startTime - Optional start time in seconds (default: 0)
+   */
+  const playMainBGM = useCallback((startTime: number = 0) => {
+    // Create audio instance if needed
+    if (!bgmRef.current) {
+      bgmRef.current = new Audio(SOUNDTRACK_PATH);
+      bgmRef.current.loop = true;
+      bgmRef.current.volume = isMuted ? 0 : volume;
 
-    // Stop current BGM if playing something different
-    if (bgmAudioRef.current && currentBgmPath !== path) {
-      bgmAudioRef.current.pause();
-      bgmAudioRef.current = null;
-    }
-
-    // Create new audio instance if needed
-    if (!bgmAudioRef.current || currentBgmPath !== path) {
-      bgmAudioRef.current = new Audio(path);
-      bgmAudioRef.current.loop = loop;
-      bgmAudioRef.current.volume = isMuted ? 0 : bgmVolume;
-
-      // Event listeners
-      bgmAudioRef.current.addEventListener('ended', () => {
-        if (!loop) {
-          setIsPlaying(false);
-        }
-      });
-
-      bgmAudioRef.current.addEventListener('error', (e) => {
+      bgmRef.current.addEventListener('error', (e) => {
         console.error('[AudioProvider] BGM Error:', e);
         setIsPlaying(false);
+      });
+
+      bgmRef.current.addEventListener('ended', () => {
+        // Should not happen with loop=true, but safety check
+        if (!bgmRef.current?.loop) {
+          setIsPlaying(false);
+        }
       });
     }
 
     // Set start time and play
-    bgmAudioRef.current.currentTime = startTime;
-    
-    bgmAudioRef.current.play()
+    bgmRef.current.currentTime = startTime;
+
+    bgmRef.current.play()
       .then(() => {
-        setCurrentBgmPath(path);
         setIsPlaying(true);
-        console.log('[AudioProvider] BGM playing:', path);
       })
       .catch((error) => {
-        // Autoplay was blocked - this is expected before user interaction
         console.warn('[AudioProvider] BGM autoplay blocked:', error.message);
         setIsPlaying(false);
       });
-  }, [currentBgmPath, bgmVolume, isMuted]);
+  }, [volume, isMuted]);
 
-  const pauseBGM = useCallback(() => {
-    if (bgmAudioRef.current && isPlaying) {
-      bgmAudioRef.current.pause();
+  /**
+   * pauseMainBGM - Pauses the main soundtrack
+   */
+  const pauseMainBGM = useCallback(() => {
+    if (bgmRef.current && isPlaying) {
+      bgmRef.current.pause();
       setIsPlaying(false);
-      console.log('[AudioProvider] BGM paused');
     }
   }, [isPlaying]);
 
-  const resumeBGM = useCallback(() => {
-    if (bgmAudioRef.current && !isPlaying && currentBgmPath) {
-      bgmAudioRef.current.play()
+  /**
+   * resumeMainBGM - Resumes the main soundtrack
+   */
+  const resumeMainBGM = useCallback(() => {
+    if (bgmRef.current && !isPlaying) {
+      bgmRef.current.play()
         .then(() => {
           setIsPlaying(true);
-          console.log('[AudioProvider] BGM resumed');
         })
         .catch((error) => {
           console.warn('[AudioProvider] BGM resume blocked:', error.message);
         });
     }
-  }, [isPlaying, currentBgmPath]);
+  }, [isPlaying]);
 
-  const stopBGM = useCallback(() => {
-    if (bgmAudioRef.current) {
-      bgmAudioRef.current.pause();
-      bgmAudioRef.current.currentTime = 0;
-      bgmAudioRef.current = null;
-      setCurrentBgmPath(null);
-      setIsPlaying(false);
-      console.log('[AudioProvider] BGM stopped');
-    }
-  }, []);
+  /**
+   * setBGMVolume - Smoothly changes BGM volume
+   * @param newVolume - Volume between 0 and 1
+   */
+  const setBGMVolume = useCallback((newVolume: number) => {
+    const clampedVolume = Math.max(0, Math.min(1, newVolume));
+    setVolumeState(clampedVolume);
 
-  const fadeBGM = useCallback((toVolume: number, duration: number) => {
-    if (!bgmAudioRef.current) return;
+    // Smooth fade
+    if (bgmRef.current && !isVinylPlaying) {
+      const startVolume = bgmRef.current.volume;
+      const volumeDiff = clampedVolume - startVolume;
+      const duration = 300; // 300ms fade
+      const steps = 20;
+      const stepDuration = duration / steps;
+      let currentStep = 0;
 
-    // Clear any existing fade
-    if (fadeIntervalRef.current) {
-      clearInterval(fadeIntervalRef.current);
-    }
-
-    const startVolume = bgmAudioRef.current.volume;
-    const volumeDiff = toVolume - startVolume;
-    const steps = 20; // Number of steps for smooth fade
-    const stepDuration = duration / steps;
-    let currentStep = 0;
-
-    fadeIntervalRef.current = window.setInterval(() => {
-      currentStep++;
-      
-      if (currentStep >= steps || !bgmAudioRef.current) {
-        if (bgmAudioRef.current) {
-          bgmAudioRef.current.volume = toVolume;
-        }
-        if (fadeIntervalRef.current) {
-          clearInterval(fadeIntervalRef.current);
-          fadeIntervalRef.current = null;
-        }
-        console.log('[AudioProvider] Fade complete, volume:', toVolume);
-        return;
+      if (fadeIntervalRef.current) {
+        clearInterval(fadeIntervalRef.current);
       }
 
-      const newVolume = startVolume + (volumeDiff * (currentStep / steps));
-      bgmAudioRef.current.volume = Math.max(0, Math.min(1, newVolume));
-    }, stepDuration);
-  }, []);
+      fadeIntervalRef.current = window.setInterval(() => {
+        currentStep++;
+        
+        if (currentStep >= steps || !bgmRef.current) {
+          if (bgmRef.current) {
+            bgmRef.current.volume = clampedVolume;
+          }
+          if (fadeIntervalRef.current) {
+            clearInterval(fadeIntervalRef.current);
+            fadeIntervalRef.current = null;
+          }
+          return;
+        }
 
-  const getBgmCurrentTime = useCallback((): number => {
-    return bgmAudioRef.current?.currentTime ?? 0;
-  }, []);
-
-  const seekBGM = useCallback((time: number) => {
-    if (bgmAudioRef.current) {
-      bgmAudioRef.current.currentTime = time;
-      console.log('[AudioProvider] BGM seeked to:', time);
+        const newVolume = startVolume + (volumeDiff * (currentStep / steps));
+        const clampedNewVolume = Math.max(0, Math.min(1, newVolume));
+        if (bgmRef.current) {
+          bgmRef.current.volume = clampedNewVolume;
+        }
+      }, stepDuration);
     }
-  }, []);
+  }, [isVinylPlaying]);
 
   // ============================================
-  // SFX CONTROLS (Fire-and-Forget)
+  // SFX CONTROLS
   // ============================================
 
-  const playSFX = useCallback((path: string) => {
+  /**
+   * playSFX - Plays a one-shot sound effect
+   * @param path - Path to the audio file
+   * @returns The audio instance (for cleanup if needed)
+   */
+  const playSFX = useCallback((path: string): HTMLAudioElement | null => {
     const sfxAudio = new Audio(path);
-    sfxAudio.volume = isMuted ? 0 : sfxVolume;
+    sfxAudio.volume = isMuted ? 0 : 0.8; // Fixed SFX volume at 80%
     
     sfxAudio.play()
-      .then(() => {
-        console.log('[AudioProvider] SFX playing:', path);
-      })
       .catch((error) => {
         console.warn('[AudioProvider] SFX blocked:', error.message);
       });
@@ -233,33 +227,124 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     sfxAudio.addEventListener('ended', () => {
       sfxAudio.remove();
     });
-  }, [sfxVolume, isMuted]);
+
+    sfxAudio.addEventListener('error', () => {
+      console.error('[AudioProvider] SFX error:', path);
+    });
+
+    return sfxAudio;
+  }, [isMuted]);
+
+  // ============================================
+  // SMART DUCKING (for SoundtrackSlide)
+  // ============================================
+
+  /**
+   * startVinylMode - Ducks BGM when vinyl is playing
+   */
+  const startVinylMode = useCallback(() => {
+    if (isVinylPlaying) return; // Already ducking
+
+    setIsVinylPlaying(true);
+    
+    if (bgmRef.current) {
+      // Save current volume
+      savedVolumeRef.current = bgmRef.current.volume;
+      
+      // Fade BGM to 0 over 500ms
+      const startVolume = bgmRef.current.volume;
+      const duration = 500;
+      const steps = 20;
+      const stepDuration = duration / steps;
+      let currentStep = 0;
+
+      if (fadeIntervalRef.current) {
+        clearInterval(fadeIntervalRef.current);
+      }
+
+      fadeIntervalRef.current = window.setInterval(() => {
+        currentStep++;
+        
+        if (currentStep >= steps || !bgmRef.current) {
+          if (bgmRef.current) {
+            bgmRef.current.volume = 0;
+          }
+          if (fadeIntervalRef.current) {
+            clearInterval(fadeIntervalRef.current);
+            fadeIntervalRef.current = null;
+          }
+          return;
+        }
+
+        const newVolume = startVolume * (1 - (currentStep / steps));
+        if (bgmRef.current) {
+          bgmRef.current.volume = newVolume;
+        }
+      }, stepDuration);
+    }
+
+  }, [isVinylPlaying]);
+
+  /**
+   * stopVinylMode - Restores BGM when vinyl stops
+   */
+  const stopVinylMode = useCallback(() => {
+    if (!isVinylPlaying) return; // Not ducking
+
+    setIsVinylPlaying(false);
+
+    if (bgmRef.current) {
+      // Restore saved volume (or use current volume state)
+      const targetVolume = isMuted ? 0 : savedVolumeRef.current || volume;
+      
+      // Fade BGM back in over 500ms
+      const startVolume = bgmRef.current.volume;
+      const duration = 500;
+      const steps = 20;
+      const stepDuration = duration / steps;
+      let currentStep = 0;
+
+      if (fadeIntervalRef.current) {
+        clearInterval(fadeIntervalRef.current);
+      }
+
+      fadeIntervalRef.current = window.setInterval(() => {
+        currentStep++;
+        
+        if (currentStep >= steps || !bgmRef.current) {
+          if (bgmRef.current) {
+            bgmRef.current.volume = targetVolume;
+          }
+          if (fadeIntervalRef.current) {
+            clearInterval(fadeIntervalRef.current);
+            fadeIntervalRef.current = null;
+          }
+          return;
+        }
+
+        const newVolume = startVolume + ((targetVolume - startVolume) * (currentStep / steps));
+        const clampedVolume = Math.max(0, Math.min(1, newVolume));
+        if (bgmRef.current) {
+          bgmRef.current.volume = clampedVolume;
+        }
+      }, stepDuration);
+    }
+
+  }, [isVinylPlaying, volume, isMuted]);
 
   // ============================================
   // SETTINGS
   // ============================================
 
-  const setBgmVolume = useCallback((volume: number) => {
-    const clampedVolume = Math.max(0, Math.min(1, volume));
-    setBgmVolumeState(clampedVolume);
-    if (bgmAudioRef.current && !isMuted) {
-      bgmAudioRef.current.volume = clampedVolume;
-    }
-  }, [isMuted]);
-
-  const setSfxVolume = useCallback((volume: number) => {
-    setSfxVolumeState(Math.max(0, Math.min(1, volume)));
-  }, []);
-
   const toggleMute = useCallback(() => {
     setIsMuted(prev => {
       const newMuted = !prev;
-      if (bgmAudioRef.current) {
-        bgmAudioRef.current.volume = newMuted ? 0 : bgmVolume;
+      if (bgmRef.current && !isVinylPlaying) {
+        bgmRef.current.volume = newMuted ? 0 : volume;
       }
       return newMuted;
     });
-  }, [bgmVolume]);
+  }, [volume, isVinylPlaying]);
 
   // ============================================
   // CONTEXT VALUE
@@ -267,27 +352,25 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const value: AudioContextType = {
     // State
-    bgmVolume,
-    sfxVolume,
-    isMuted,
-    currentBgmPath,
     isPlaying,
+    isMuted,
+    volume,
+    isVinylPlaying,
 
     // BGM Controls
-    playBGM,
-    pauseBGM,
-    resumeBGM,
-    stopBGM,
-    fadeBGM,
-    getBgmCurrentTime,
-    seekBGM,
+    playMainBGM,
+    pauseMainBGM,
+    resumeMainBGM,
+    setBGMVolume,
 
     // SFX Controls
     playSFX,
 
+    // Smart Ducking
+    startVinylMode,
+    stopVinylMode,
+
     // Settings
-    setBgmVolume,
-    setSfxVolume,
     toggleMute,
   };
 
@@ -308,4 +391,3 @@ export const useAudio = (): AudioContextType => {
 };
 
 export default AudioProvider;
-

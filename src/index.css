@@ -257,4 +257,216 @@
     opacity: 0.03;
     pointer-events: none;
   }
+
+  /* ============================================
+     ACCESSIBILITY UTILITIES
+     ============================================ */
+
+  /* Screen Reader Only - Visually hidden but accessible */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  /* Not SR Only - Undo sr-only when needed (e.g., on focus) */
+  .not-sr-only {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: 0;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+
+  /* ============================================
+     RESPONSIVENESS UTILITIES
+     ============================================ */
+
+  /* Fluid Typography - Scales smoothly between breakpoints */
+  .fluid-text-sm {
+    font-size: clamp(0.875rem, 2vw, 1rem);
+  }
+
+  .fluid-text-base {
+    font-size: clamp(1rem, 2.5vw, 1.25rem);
+  }
+
+  .fluid-text-lg {
+    font-size: clamp(1.25rem, 3vw, 1.5rem);
+  }
+
+  .fluid-text-xl {
+    font-size: clamp(1.5rem, 4vw, 2rem);
+  }
+
+  .fluid-text-2xl {
+    font-size: clamp(1.75rem, 5vw, 2.5rem);
+  }
+
+  .fluid-text-3xl {
+    font-size: clamp(2rem, 6vw, 3rem);
+  }
+
+  .fluid-text-4xl {
+    font-size: clamp(2.5rem, 8vw, 4rem);
+  }
+
+  .fluid-text-massive {
+    font-size: clamp(3rem, 12vw, 8rem);
+  }
+
+  /* Touch Target - Ensures minimum 44x44px hit area (WCAG 2.5.5) */
+  .touch-target {
+    position: relative;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Touch Target with invisible expanded hit area */
+  .touch-target-expanded::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    min-width: 44px;
+    min-height: 44px;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Interactive overlay for small targets (invisible but clickable) */
+  .touch-overlay {
+    position: absolute;
+    inset: -8px; /* Expand hit area by 8px on all sides */
+    min-width: 44px;
+    min-height: 44px;
+    opacity: 0;
+    cursor: pointer;
+    pointer-events: auto;
+    z-index: 1;
+  }
+}
+
+/* ============================================
+   GLOBAL FOCUS STYLES (Keyboard Navigation)
+   ============================================ */
+
+/* Custom Neon Focus Ring for Keyboard Users */
+*:focus-visible {
+  outline: 2px solid #CCFF00;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(204, 255, 0, 0.25);
+}
+
+/* Remove default focus for mouse users (optional - improves UX) */
+*:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
+
+/* Special focus style for buttons and interactive elements */
+button:focus-visible,
+[role="button"]:focus-visible,
+a:focus-visible,
+[tabindex="0"]:focus-visible {
+  outline: 2px solid #CCFF00;
+  outline-offset: 2px;
+  box-shadow: 
+    0 0 0 4px rgba(204, 255, 0, 0.25),
+    0 0 20px rgba(204, 255, 0, 0.3);
+}
+
+/* Skip link (appears on first Tab press) */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.75rem 1.5rem;
+  background: #CCFF00;
+  color: #000;
+  font-weight: bold;
+  text-decoration: none;
+  z-index: 9999;
+  border-radius: 0 0 0.5rem 0.5rem;
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* ============================================
+   REDUCED MOTION SUPPORT
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Keep essential visual feedback */
+  *:focus-visible {
+    transition-duration: 0.1s !important;
+  }
+}
+
+/* ========================================= */
+/* 🛑 NO SCROLLBAR ZONE (Universal Fix) 🛑 */
+/* ========================================= */
+
+/* Force hide on EVERYTHING */
+* {
+  -ms-overflow-style: none !important; /* IE and Edge */
+  scrollbar-width: none !important; /* Firefox */
+}
+
+*::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: transparent !important;
+}
+
+/* Target specific framework root elements */
+html,
+body,
+#root,
+#__next,
+.scroll-container {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+#root::-webkit-scrollbar,
+#__next::-webkit-scrollbar,
+.scroll-container::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }

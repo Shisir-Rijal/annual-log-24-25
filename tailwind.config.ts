@@ -13,6 +13,9 @@ export default {
       },
     },
     extend: {
+      screens: {
+        'xs': '375px',  // iPhone SE and small devices
+      },
       fontFamily: {
         display: ['Montserrat', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],

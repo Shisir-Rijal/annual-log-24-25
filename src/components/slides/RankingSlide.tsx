@@ -1,6 +1,10 @@
 const RankingSlide = () => {
   return (
-    <section className="section-slide bg-gradient-slide-6 noise">
+    <section 
+      tabIndex={0}
+      aria-label="Ranking Slide - Top 4% of all lifters"
+      className="section-slide bg-gradient-slide-6 noise focus:outline-none focus:ring-2 focus:ring-[#CCFF00]/50"
+    >
       <div className="absolute inset-0 flex flex-col items-center justify-center px-6">
         {/* Pre-title */}
         <p className="font-mono text-sm text-muted-foreground tracking-[0.3em] uppercase mb-4">
@@ -10,8 +14,7 @@ const RankingSlide = () => {
         {/* Main Stat */}
         <div id="ranking-stat" className="gsap-ranking">
           <h2 className="text-display text-massive text-center">
-            <span className="text-primary neon-text">TOP 4</span>
-            <span className="text-foreground">%</span>
+            <span className="text-primary neon-text">TOP 4%</span>
           </h2>
         </div>
         

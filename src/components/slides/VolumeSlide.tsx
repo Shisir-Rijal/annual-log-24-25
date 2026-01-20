@@ -86,16 +86,9 @@ const VolumeSlide = () => {
 
     const totalVolume = Object.values(totals).reduce((sum, v) => sum + v, 0);
 
-    // Sort muscle groups by volume (highest to lowest)
     const sortedGroups = Object.entries(totals)
       .map(([name, volume]) => ({ name, volume }))
       .sort((a, b) => b.volume - a.volume);
-
-    // Debug: Log the sorted order
-    console.log('[VolumeSlide] Sorted by volume (highest to lowest):');
-    sortedGroups.forEach((g, i) => {
-      console.log(`  ${i + 1}. ${g.name}: ${formatVolume(g.volume)} (${g.volume.toLocaleString()} kg)`);
-    });
 
     return {
       totalVolume,
@@ -104,7 +97,11 @@ const VolumeSlide = () => {
   }, [data]);
 
   return (
-    <section className="section-slide bg-gradient-slide-7 noise">
+    <section 
+      tabIndex={0}
+      aria-label="Volume Slide - Total volume lifted by muscle group"
+      className="section-slide bg-gradient-slide-7 noise focus:outline-none focus:ring-2 focus:ring-[#CCFF00]/50"
+    >
       <div className="absolute inset-0 flex flex-col items-center justify-center px-6">
         {/* Title */}
         <p className="font-mono text-sm text-muted-foreground tracking-[0.3em] uppercase mb-4">
@@ -112,10 +109,10 @@ const VolumeSlide = () => {
         </p>
         
         <div id="volume-stat" className="gsap-volume">
-          <h2 className="text-display text-massive text-center">
+          <h2 className="text-display text-massive text-center leading-none">
             <span className="text-primary neon-text">{formatVolume(volumeData.totalVolume)}</span>
           </h2>
-          <p className="text-display text-huge text-center text-foreground -mt-4">
+          <p className="text-display text-huge text-center text-primary neon-text mt-0 md:-mt-4">
             KG
           </p>
         </div>

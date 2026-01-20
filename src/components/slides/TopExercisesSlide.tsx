@@ -1,14 +1,17 @@
 import { useMemo, useRef, useLayoutEffect, useState } from 'react';
 import { useWorkoutData } from '../../context/DataProvider';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { gsap } from 'gsap';
 import { Link, Droplet, Shield } from 'lucide-react';
 
 const TopExercisesSlide = () => {
   const { data } = useWorkoutData();
+  const prefersReducedMotion = useReducedMotion();
   const containerRef = useRef<HTMLDivElement>(null);
   const signatureRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const [expandedExercise, setExpandedExercise] = useState<string | null>(null);
+  const [mobileTab, setMobileTab] = useState<'signature' | 'arsenal'>('signature');
 
   // Calculate top 5 exercises by frequency
   const arsenal = useMemo(() => {
@@ -57,9 +60,20 @@ const TopExercisesSlide = () => {
     };
   }, [data]);
 
-  // GSAP Animations
+  // GSAP Animations (Disabled for reduced motion)
   useLayoutEffect(() => {
     if (!containerRef.current || !arsenal) return;
+
+    if (prefersReducedMotion) {
+      // Reduced motion: Set elements to visible state immediately
+      if (signatureRef.current) {
+        gsap.set(signatureRef.current, { x: 0, opacity: 1 });
+      }
+      gsap.set('.arsenal-item', { x: 0, opacity: 1 });
+      gsap.set('.freq-bar-fill', { scaleX: 1 });
+      gsap.set('.gear-slot', { opacity: 1, y: 0 });
+      return;
+    }
 
     const ctx = gsap.context(() => {
       // Signature move slide in from left
@@ -106,7 +120,7 @@ const TopExercisesSlide = () => {
     }, containerRef);
 
     return () => ctx.revert();
-  }, [arsenal]);
+  }, [arsenal, prefersReducedMotion]);
 
   if (!arsenal) {
     return (
@@ -123,6 +137,7 @@ const TopExercisesSlide = () => {
       {/* Grid overlay */}
       <div 
         className="absolute inset-0 opacity-[0.02]"
+        aria-hidden="true"
         style={{
           backgroundImage: `
             linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
@@ -141,13 +156,45 @@ const TopExercisesSlide = () => {
 
       {/* Main Content Container */}
       <div className="absolute inset-0 flex flex-col justify-center px-8 md:px-16 py-8">
+        {/* Mobile Tab Buttons - Only visible on mobile */}
+        <div className="flex gap-3 mb-6 mt-16 lg:hidden relative z-20">
+          <button
+            type="button"
+            onClick={() => setMobileTab('signature')}
+            className={`flex-1 py-3 px-4 rounded-lg font-mono text-sm uppercase tracking-wider transition-all duration-200 ${
+              mobileTab === 'signature'
+                ? 'bg-[#CCFF00] text-black font-bold'
+                : 'border border-white/20 text-gray-400 hover:border-white/40'
+            }`}
+            aria-pressed={mobileTab === 'signature'}
+            aria-label="Show Signature Move"
+          >
+            Signature
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileTab('arsenal')}
+            className={`flex-1 py-3 px-4 rounded-lg font-mono text-sm uppercase tracking-wider transition-all duration-200 ${
+              mobileTab === 'arsenal'
+                ? 'bg-[#CCFF00] text-black font-bold'
+                : 'border border-white/20 text-gray-400 hover:border-white/40'
+            }`}
+            aria-pressed={mobileTab === 'arsenal'}
+            aria-label="Show Arsenal List"
+          >
+            Arsenal
+          </button>
+        </div>
+
         {/* Main Grid - Takes 75-80% of vertical space */}
         <div className="flex-1 flex items-center justify-center mb-8">
           <div className="grid grid-cols-12 gap-8 w-full max-w-7xl">
           {/* LEFT SIDE - Signature Move Feature Card (60%) */}
           <div 
             ref={signatureRef}
-            className="col-span-12 md:col-span-7 relative"
+            className={`col-span-12 md:col-span-7 relative ${
+              mobileTab === 'signature' ? 'block' : 'hidden lg:block'
+            }`}
           >
             {/* Feature Card */}
             <div className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-xl p-8 md:p-12 relative overflow-hidden">
@@ -155,7 +202,10 @@ const TopExercisesSlide = () => {
               <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
               
               {/* Giant "01" background texture */}
-              <div className="absolute top-8 right-8 font-mono text-[200px] md:text-[280px] font-black text-white/5 select-none pointer-events-none">
+              <div 
+                className="absolute top-8 right-8 font-mono text-[200px] md:text-[280px] font-black text-white/5 select-none pointer-events-none"
+                aria-hidden="true"
+              >
                 01
               </div>
 
@@ -215,10 +265,12 @@ const TopExercisesSlide = () => {
           {/* RIGHT SIDE - Support Arsenal List (40%) */}
           <div 
             ref={listRef}
-            className="col-span-12 md:col-span-5 flex flex-col gap-6"
+            className={`col-span-12 md:col-span-5 flex flex-col gap-6 ${
+              mobileTab === 'arsenal' ? 'flex' : 'hidden lg:flex'
+            }`}
           >
             {/* List Container */}
-            <div className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden flex-grow flex flex-col min-h-0">
+            <div className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden flex-grow flex flex-col min-h-0 max-h-[60vh] lg:max-h-none">
               {/* Header */}
               <div className="p-6 border-b border-white/10 flex-shrink-0">
                 <h3 className="text-display text-2xl font-bold text-white mb-1">
@@ -230,7 +282,7 @@ const TopExercisesSlide = () => {
               </div>
 
               {/* List Items - Scrollable */}
-              <div className="divide-y divide-white/5 overflow-y-auto flex-1">
+              <div className="divide-y divide-white/5 overflow-y-auto flex-1 min-h-0">
                 {arsenal.support.map((exercise, index) => {
                   const barWidth = (exercise.count / arsenal.maxCount) * 100;
                   const rank = String(index + 2).padStart(2, '0');
@@ -250,9 +302,12 @@ const TopExercisesSlide = () => {
                       className="arsenal-item group"
                     >
                       {/* Header Row - Always Visible */}
-                      <div 
-                        className="px-6 py-5 hover:bg-white/5 transition-colors duration-200 cursor-pointer"
+                      <button
+                        type="button"
                         onClick={handleToggle}
+                        aria-expanded={isExpanded}
+                        aria-label={`${isExpanded ? 'Collapse' : 'Expand'} details for ${exercise.name}`}
+                        className="text-left w-full px-6 py-5 hover:bg-white/5 transition-colors duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#CCFF00] rounded-xl"
                       >
                         <div className="flex items-center gap-4">
                           {/* Rank */}
@@ -280,7 +335,7 @@ const TopExercisesSlide = () => {
                             </div>
                           </div>
                         </div>
-                      </div>
+                      </button>
 
                       {/* Details Section - Accordion */}
                       <div 
@@ -361,7 +416,7 @@ const TopExercisesSlide = () => {
               <div className="flex gap-4">
                 {/* Slot 1: Lifting Straps */}
                 <div className="gear-slot group relative bg-black/40 backdrop-blur-sm border border-white/20 rounded-lg p-4 w-24 h-24 flex flex-col items-center justify-center transition-all duration-300 hover:border-[#CCFF00]/50 hover:shadow-[0_0_15px_rgba(204,255,0,0.2)]">
-                  <Link className="w-8 h-8 text-gray-400 group-hover:text-[#CCFF00] transition-colors mb-2" />
+                  <Link className="w-8 h-8 text-gray-400 group-hover:text-[#CCFF00] transition-colors mb-2" aria-hidden="true" />
                   <p className="font-mono text-[10px] text-gray-500 group-hover:text-[#CCFF00] transition-colors uppercase tracking-wider">
                     STRAPS
                   </p>
@@ -369,7 +424,7 @@ const TopExercisesSlide = () => {
 
                 {/* Slot 2: Hydration */}
                 <div className="gear-slot group relative bg-black/40 backdrop-blur-sm border border-white/20 rounded-lg p-4 w-24 h-24 flex flex-col items-center justify-center transition-all duration-300 hover:border-[#CCFF00]/50 hover:shadow-[0_0_15px_rgba(204,255,0,0.2)]">
-                  <Droplet className="w-8 h-8 text-gray-400 group-hover:text-[#CCFF00] transition-colors mb-2" />
+                  <Droplet className="w-8 h-8 text-gray-400 group-hover:text-[#CCFF00] transition-colors mb-2" aria-hidden="true" />
                   <p className="font-mono text-[10px] text-gray-500 group-hover:text-[#CCFF00] transition-colors uppercase tracking-wider">
                     H2O
                   </p>
@@ -377,7 +432,7 @@ const TopExercisesSlide = () => {
 
                 {/* Slot 3: Sweat Shield */}
                 <div className="gear-slot group relative bg-black/40 backdrop-blur-sm border border-white/20 rounded-lg p-4 w-24 h-24 flex flex-col items-center justify-center transition-all duration-300 hover:border-[#CCFF00]/50 hover:shadow-[0_0_15px_rgba(204,255,0,0.2)]">
-                  <Shield className="w-8 h-8 text-gray-400 group-hover:text-[#CCFF00] transition-colors mb-2" />
+                  <Shield className="w-8 h-8 text-gray-400 group-hover:text-[#CCFF00] transition-colors mb-2" aria-hidden="true" />
                   <p className="font-mono text-[10px] text-gray-500 group-hover:text-[#CCFF00] transition-colors uppercase tracking-wider">
                     TOWEL
                   </p>

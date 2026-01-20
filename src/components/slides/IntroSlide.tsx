@@ -1,28 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { useAudio } from '@/context/AudioProvider';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 /**
  * AUDIO FILES REQUIRED in /public/audio/:
- * - charge_1.mp3 (click sound 1)
- * - charge_2.mp3 (click sound 2)
- * - charge_3.mp3 (click sound 3)
+ * - charge_1.mp3, charge_2.mp3, charge_3.mp3 (charging sounds)
  * - explosion.mp3 (final explosion)
- * - soundtrack.mp3 (background music)
- * 
- * The soundtrack should have a "drop" around 22-25 seconds
- * for the cinematic sync effect.
+ * - soundtrack_2.mp3 (main BGM loop)
  */
 
-// ============================================
-// AUDIO CONFIGURATION
-// Adjust this to match the "drop" timestamp in your soundtrack.mp3
-// ============================================
-const DROP_TIMESTAMP = 42.0; // seconds - The beat drop in the soundtrack
-const BGM_PATH = '/audio/soundtrack.mp3';
-
 const IntroSlide = () => {
-  const { playBGM, playSFX, setBgmVolume, getBgmCurrentTime, seekBGM } = useAudio();
+  const { playMainBGM, playSFX } = useAudio();
+  const prefersReducedMotion = useReducedMotion();
   const sectionRef = useRef<HTMLElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const circleRef = useRef<HTMLDivElement>(null);
@@ -38,7 +28,7 @@ const IntroSlide = () => {
 
   // Humanized typewriter effect with random intervals
   useEffect(() => {
-    const fullText = 'THE ANNUAL LOG 2024';
+    const fullText = 'THE ANNUAL LOG 2024/25';
     let currentIndex = 0;
 
     const getRandomDelay = (char: string) => {
@@ -66,9 +56,9 @@ const IntroSlide = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Breathing animation for circle - speed increases with clicks
+  // Breathing animation for circle - speed increases with clicks (disabled for reduced motion)
   useEffect(() => {
-    if (!circleRef.current) return;
+    if (!circleRef.current || prefersReducedMotion) return;
 
     const breathingSpeed = 2.5 - (clickCount * 0.3); // Faster as clicks increase
     const breathingScale = 1.05 + (clickCount * 0.02); // Bigger scale as clicks increase
@@ -102,9 +92,8 @@ const IntroSlide = () => {
       scaleAnim.kill();
       opacityAnim.kill();
     };
-  }, [clickCount]);
+  }, [clickCount, prefersReducedMotion]);
 
-  // Update progress ring
   useEffect(() => {
     if (!progressRingRef.current) return;
 
@@ -130,28 +119,21 @@ const IntroSlide = () => {
     // AUDIO LOGIC
     // ============================================
     
-    if (newCount === 1) {
-      // First click: Start BGM at low volume, play charge SFX
-      playSFX('/audio/charge_1.mp3');
-      playBGM(BGM_PATH, { startTime: 0, loop: true });
-      setBgmVolume(0.1); // Start quiet for atmosphere
-    } else if (newCount < MAX_CLICKS) {
-      // Charging clicks 2-4: Play varying charge SFX, increase BGM volume
+    if (newCount < MAX_CLICKS) {
+      // Clicks 1-4: ONLY play charge SFX (no BGM yet)
       const chargeSfx = `/audio/charge_${Math.min(newCount, 3)}.mp3`;
       playSFX(chargeSfx);
-      
-      // Gradually increase BGM volume to build tension
-      const newVolume = 0.1 + (newCount * 0.1); // 0.2, 0.3, 0.4
-      setBgmVolume(newVolume);
+    } else if (newCount === MAX_CLICKS) {
+      playSFX('/audio/explosion.mp3');
+      playMainBGM(7.0);
     }
-    // Click 5 (explosion) audio is handled below with "Hard Sync"
 
     // ============================================
-    // VISUAL ANIMATIONS
+    // VISUAL ANIMATIONS (Disabled for reduced motion)
     // ============================================
 
-    // Shake/punch animation
-    if (circleRef.current) {
+    // Shake/punch animation (skip if reduced motion)
+    if (circleRef.current && !prefersReducedMotion) {
       gsap.context(() => {
         // Scale down then bounce back
         gsap.to(circleRef.current, {
@@ -179,31 +161,25 @@ const IntroSlide = () => {
           },
         });
       }, sectionRef);
+    } else if (circleRef.current && prefersReducedMotion) {
+      // Reduced motion: Only color flash (essential feedback)
+      gsap.to(circleRef.current, {
+        borderColor: '#ff0000',
+        duration: 0.1,
+        onComplete: () => {
+          gsap.to(circleRef.current, {
+            borderColor: '#CCFF00',
+            duration: 0.2,
+          });
+        },
+      });
     }
 
     // Final click - trigger explosion
     if (newCount === MAX_CLICKS) {
       setIsExploding(true);
       
-      // ============================================
-      // THE DROP - Cinematic "Hard Sync"
-      // ============================================
-      playSFX('/audio/explosion.mp3');
-      
-      // Get current BGM time to decide if we need to jump
-      const currentTime = getBgmCurrentTime();
-      
-      // Only jump FORWARD if we haven't reached the drop yet
-      // If the user clicked slowly and already passed the drop, let it continue naturally
-      if (currentTime < DROP_TIMESTAMP) {
-        seekBGM(DROP_TIMESTAMP);
-        console.log(`[IntroSlide] Hard Sync: Jumped from ${currentTime.toFixed(1)}s to ${DROP_TIMESTAMP}s`);
-      } else {
-        console.log(`[IntroSlide] Already past drop (${currentTime.toFixed(1)}s), letting it play`);
-      }
-      
-      // Crank volume to max for the epic beat drop moment
-      setBgmVolume(1.0);
+      // Audio logic is already handled above (SFX + BGM)
 
       // Explosion animation
       if (circleRef.current && headerRef.current) {
@@ -251,10 +227,10 @@ const IntroSlide = () => {
   // Split text for color coding
   const renderHeaderText = () => {
     const text = displayedText || '';
-    const yearIndex = text.indexOf('2024');
+    const yearIndex = text.indexOf('2024/25');
     
     if (yearIndex !== -1) {
-      // "2024" is in the text
+      // "2024/25" is in the text
       const beforeYear = text.substring(0, yearIndex);
       const year = text.substring(yearIndex);
       return (
@@ -265,7 +241,7 @@ const IntroSlide = () => {
       );
     }
     
-    // "2024" hasn't been typed yet
+    // "2024/25" hasn't been typed yet
     return <span className="text-foreground">{text}</span>;
   };
 
@@ -275,23 +251,31 @@ const IntroSlide = () => {
     return 'INITIATE';
   };
 
+  // Dynamic screenreader label based on clickCount
+  const getAriaLabel = () => {
+    if (clickCount === 0) return 'Initialize System. Press Space to start.';
+    if (clickCount < MAX_CLICKS) return `System Charging. Level ${clickCount} of ${MAX_CLICKS}. Press again.`;
+    if (clickCount === MAX_CLICKS) return 'System Fully Charged. Launching.';
+    return 'Initialize System. Press Space to start.';
+  };
+
   return (
     <section 
       ref={sectionRef}
       className="section-slide bg-background relative overflow-hidden"
     >
-      {/* Header - Top Left */}
+      {/* Title - Centered, positioned independently above circle */}
       <div 
         ref={headerRef}
-        className="absolute top-8 left-8 z-20"
+        className="absolute top-[18%] md:top-[20%] left-0 right-0 text-center z-20"
       >
-        <p className="font-mono text-2xl md:text-4xl uppercase tracking-widest">
+        <p className="font-mono text-xl md:text-3xl lg:text-4xl uppercase tracking-widest">
           {renderHeaderText()}
           <span className="text-[#CCFF00] animate-pulse">|</span>
         </p>
       </div>
 
-      {/* Central Circle - The Trigger */}
+      {/* Circle - Always centered in the middle */}
       <div className="absolute inset-0 flex items-center justify-center z-10">
         <div className="relative">
           {/* Progress Ring SVG */}
@@ -329,11 +313,21 @@ const IntroSlide = () => {
           {/* Circle Button */}
           <div
             ref={circleRef}
+            role="button"
+            tabIndex={0}
+            aria-label={getAriaLabel()}
             onClick={handleCircleClick}
-            className="w-48 h-48 md:w-64 md:h-64 rounded-full border border-[#CCFF00] bg-transparent flex items-center justify-center shadow-[0_0_15px_rgba(204,255,0,0.3)] cursor-pointer relative z-10"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleCircleClick();
+              }
+            }}
+            className="w-48 h-48 md:w-64 md:h-64 rounded-full border border-[#CCFF00] bg-transparent flex items-center justify-center shadow-[0_0_15px_rgba(204,255,0,0.3)] cursor-pointer relative z-10 focus:outline-none focus:ring-4 focus:ring-[#CCFF00]/50"
           >
             <p
               ref={circleTextRef}
+              aria-live="polite"
               className="font-mono text-sm md:text-base uppercase tracking-widest text-[#CCFF00] text-center px-4"
             >
               {getCircleText()}
@@ -342,10 +336,10 @@ const IntroSlide = () => {
         </div>
       </div>
 
-      {/* Scroll Indicator - Bottom (Hidden initially) */}
+      {/* Scroll Indicator - Bottom centered (Hidden initially) */}
       <div 
         ref={scrollIndicatorRef}
-        className={`absolute bottom-12 left-1/2 -translate-x-1/2 z-20 ${showScrollHint ? '' : 'opacity-0'}`}
+        className={`absolute bottom-[15%] left-0 right-0 text-center z-20 ${showScrollHint ? '' : 'opacity-0'}`}
       >
         <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground animate-pulse">
           SCROLL TO UNLOCK

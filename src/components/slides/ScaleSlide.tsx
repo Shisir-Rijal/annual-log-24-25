@@ -1,19 +1,17 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useWorkoutData } from '@/context/DataProvider';
 
 gsap.registerPlugin(ScrollTrigger);
 
-// Helper function to format numbers
-const formatNumber = (num: number): string => {
-  if (num >= 1000000) {
-    return (num / 1000000).toFixed(1) + 'M';
-  }
-  if (num >= 1000) {
-    return (num / 1000).toFixed(1) + 'K';
-  }
-  return num.toString();
+// Helper function to format date as "DD. MMM"
+const formatDateShort = (dateString: string): string => {
+  const date = new Date(dateString);
+  const day = date.getDate().toString().padStart(2, '0');
+  const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+  const month = months[date.getMonth()];
+  return `${day}. ${month}`;
 };
 
 const ScaleSlide = () => {
@@ -33,14 +31,26 @@ const ScaleSlide = () => {
   const [activeNodes, setActiveNodes] = useState<number[]>([]);
   const [isVisible, setIsVisible] = useState(false);
 
-  // Get data
-  const totalVolume = data?.overallStats.totalVolume || 0;
-  const checkins = data?.overallStats.uniqueCheckins || 0;
-  const hoursInvested = Math.round(14026 / 60); // ~233 hours
+  // Calculate mission timeline data
+  const { firstDate, lastDate, uniqueExercises } = useMemo(() => {
+    if (!data?.rawLogs || data.rawLogs.length === 0) {
+      return { firstDate: '01. JAN', lastDate: '31. DEC', uniqueExercises: 0 };
+    }
+    const logs = data.rawLogs;
+    const uniqueDates = [...new Set(logs.map(log => log.date?.split('T')[0]))].filter(Boolean).sort();
+    const firstDateStr = uniqueDates[0] || '2024-01-01';
+    const lastDateStr = uniqueDates[uniqueDates.length - 1] || '2024-12-31';
+    const uniqueExerciseSet = new Set(logs.map(log => log.exerciseName));
+    return {
+      firstDate: formatDateShort(firstDateStr),
+      lastDate: formatDateShort(lastDateStr),
+      uniqueExercises: uniqueExerciseSet.size,
+    };
+  }, [data]);
 
   // Typewriter effect for header
   useEffect(() => {
-    const fullText = 'SYSTEM CHECK: OUTPUT';
+    const fullText = 'MISSION LOG // TIMELINE';
     let currentIndex = 0;
 
     const getRandomDelay = (char: string) => {
@@ -190,7 +200,9 @@ const ScaleSlide = () => {
   return (
     <section
       ref={sectionRef}
-      className="section-slide bg-background relative overflow-hidden"
+      tabIndex={0}
+      aria-label="Scale Slide - Mission timeline and scope"
+      className="section-slide bg-background relative overflow-hidden focus:outline-none focus:ring-2 focus:ring-[#CCFF00]/50"
     >
       {/* CSS Grid Container */}
       <div className="grid grid-cols-12 grid-rows-6 h-screen p-12 relative">
@@ -235,7 +247,13 @@ const ScaleSlide = () => {
         <button
           ref={node1Ref}
           onClick={() => handleNodeClick(1)}
-          className={`col-start-9 row-start-2 w-12 h-12 rounded-full border-[0.5px] flex items-center justify-center z-10 transition-all duration-300 justify-self-center self-center ${
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleNodeClick(1);
+            }
+          }}
+          className={`col-start-9 row-start-2 w-12 h-12 rounded-full border-[0.5px] flex items-center justify-center z-10 transition-all duration-300 justify-self-center self-center focus:outline-none focus:ring-2 focus:ring-[#CCFF00]/50 rounded-full ${
             activeNodes.includes(1)
               ? 'border-[#CCFF00] shadow-[0_0_20px_#CCFF00]'
               : 'border-[#CCFF00]/50 hover:border-[#CCFF00]'
@@ -254,8 +272,14 @@ const ScaleSlide = () => {
         <button
           ref={node2Ref}
           onClick={() => handleNodeClick(2)}
+          onKeyDown={(e) => {
+            if ((e.key === 'Enter' || e.key === ' ') && activeNodes.includes(1)) {
+              e.preventDefault();
+              handleNodeClick(2);
+            }
+          }}
           disabled={!activeNodes.includes(1)}
-          className={`col-start-3 row-start-3 w-12 h-12 rounded-full border-[0.5px] flex items-center justify-center z-10 transition-all duration-300 justify-self-center self-center ${
+          className={`col-start-3 row-start-3 w-12 h-12 rounded-full border-[0.5px] flex items-center justify-center z-10 transition-all duration-300 justify-self-center self-center focus:outline-none focus:ring-2 focus:ring-[#CCFF00]/50 rounded-full ${
             activeNodes.includes(2)
               ? 'border-[#CCFF00] shadow-[0_0_20px_#CCFF00]'
               : activeNodes.includes(1)
@@ -276,8 +300,14 @@ const ScaleSlide = () => {
         <button
           ref={node3Ref}
           onClick={() => handleNodeClick(3)}
+          onKeyDown={(e) => {
+            if ((e.key === 'Enter' || e.key === ' ') && activeNodes.includes(2)) {
+              e.preventDefault();
+              handleNodeClick(3);
+            }
+          }}
           disabled={!activeNodes.includes(2)}
-          className={`col-start-8 row-start-5 w-12 h-12 rounded-full border-[0.5px] flex items-center justify-center z-10 transition-all duration-300 justify-self-center self-center ${
+          className={`col-start-8 row-start-5 w-12 h-12 rounded-full border-[0.5px] flex items-center justify-center z-10 transition-all duration-300 justify-self-center self-center focus:outline-none focus:ring-2 focus:ring-[#CCFF00]/50 rounded-full ${
             activeNodes.includes(3)
               ? 'border-[#CCFF00] shadow-[0_0_20px_#CCFF00]'
               : activeNodes.includes(2)
@@ -301,12 +331,12 @@ const ScaleSlide = () => {
             className="col-start-10 col-span-2 row-start-2 backdrop-blur-md border-l border-[#CCFF00] pl-6 py-4 z-20 self-center"
           >
             <p className="text-xs font-mono text-gray-400 uppercase tracking-[0.2em] mb-2">
-              TOTAL LOAD
+              INITIATED
             </p>
             <h2 className="text-5xl font-display font-bold text-white tracking-tighter mb-1">
-              {formatNumber(totalVolume)}
+              {firstDate}
             </h2>
-            <p className="text-xs font-mono text-gray-400">KG</p>
+            <p className="text-xs font-mono text-gray-400">DAY 01</p>
           </div>
         )}
 
@@ -317,14 +347,14 @@ const ScaleSlide = () => {
             className="col-start-1 col-span-2 row-start-3 backdrop-blur-md border-l border-[#CCFF00] pl-6 py-4 z-20 self-center"
           >
             <p className="text-xs font-mono text-gray-400 uppercase tracking-[0.2em] mb-2">
-              TIME INVESTED
+              LAST ACTIVE
             </p>
             <h2 className="text-5xl font-display font-bold text-white tracking-tighter mb-1">
-              {hoursInvested}
+              {lastDate}
             </h2>
-            <p className="text-xs font-mono text-gray-400 mb-1">HOURS</p>
+            <p className="text-xs font-mono text-gray-400 mb-1">MISSION STATUS</p>
             <p className="text-xs font-mono text-[#CCFF00]">
-              3.2 MOON TRIPS 🚀
+              ONGOING
             </p>
           </div>
         )}
@@ -336,12 +366,12 @@ const ScaleSlide = () => {
             className="col-start-10 col-span-2 row-start-5 backdrop-blur-md border-l border-[#CCFF00] pl-6 py-4 z-20 self-center"
           >
             <p className="text-xs font-mono text-gray-400 uppercase tracking-[0.2em] mb-2">
-              SESSIONS
+              ARSENAL SIZE
             </p>
             <h2 className="text-5xl font-display font-bold text-white tracking-tighter mb-1">
-              {checkins}
+              {uniqueExercises}
             </h2>
-            <p className="text-xs font-mono text-[#CCFF00]">TOP 4%</p>
+            <p className="text-xs font-mono text-[#CCFF00]">UNIQUE EXERCISES</p>
           </div>
         )}
       </div>

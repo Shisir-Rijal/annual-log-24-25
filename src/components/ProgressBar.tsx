@@ -1,3 +1,5 @@
+import { ACTS } from '@/config/acts';
+
 interface ProgressBarProps {
   totalSections: number;
   currentSection: number;
@@ -8,13 +10,11 @@ interface Checkpoint {
   slideIndex: number; // 0-based slide index
 }
 
-const ACTS: Checkpoint[] = [
-  { label: 'I', slideIndex: 0 },    // Intro - System Boot / Atmospheric Build-up
-  { label: 'II', slideIndex: 1 },   // Scale - First Beat Drop / The Stats
-  { label: 'III', slideIndex: 6 },  // Top Exercises - Second Beat Drop / The Combat Loadout
-  { label: 'IV', slideIndex: 9 },   // Soundtrack/Identity - Third Beat Drop / The Vibe
-  { label: 'V', slideIndex: 13 },   // OutroSlide_2 - System Shutdown (100%)
-];
+// Convert ACTS to Checkpoint format for ProgressBar
+const CHECKPOINTS: Checkpoint[] = ACTS.map(act => ({
+  label: act.label,
+  slideIndex: act.startIndex,
+}));
 
 const ProgressBar = ({ totalSections, currentSection }: ProgressBarProps) => {
   // Calculate progress as 0 to 1
@@ -44,7 +44,7 @@ const ProgressBar = ({ totalSections, currentSection }: ProgressBarProps) => {
         />
 
         {/* Checkpoints (Diamonds) */}
-        {ACTS.map((act, idx) => {
+        {CHECKPOINTS.map((act, idx) => {
           const checkpointPos = getCheckpointPosition(act.slideIndex);
           const isActive = isCheckpointActive(checkpointPos);
           const isLast = idx === ACTS.length - 1;

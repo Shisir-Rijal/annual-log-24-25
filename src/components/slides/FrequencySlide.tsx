@@ -60,7 +60,11 @@ const FrequencySlide = () => {
   }, []);
 
   return (
-    <section className="section-slide bg-gradient-slide-2 noise">
+    <section 
+      tabIndex={0}
+      aria-label="Frequency Slide - Total workouts and statistics"
+      className="section-slide bg-gradient-slide-2 noise focus:outline-none focus:ring-2 focus:ring-[#CCFF00]/50"
+    >
       <div className="absolute inset-0 flex flex-col items-center justify-center px-6">
         {/* Label */}
         <p className="font-mono text-sm text-muted-foreground tracking-[0.3em] uppercase mb-6">
@@ -99,7 +103,7 @@ const FrequencySlide = () => {
           
           {/* Slot 4: Hours Invested */}
           <div className="text-center">
-            <p className="text-stat text-large text-primary">{metrics.hoursInvested}</p>
+            <p className="text-stat text-large text-foreground">{metrics.hoursInvested}</p>
             <p className="font-mono text-xs text-muted-foreground mt-1">HOURS</p>
           </div>
         </div>

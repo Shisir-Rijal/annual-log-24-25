@@ -192,7 +192,12 @@ const PeakMonthSlide = () => {
   }, [peakData]);
 
   return (
-    <section ref={sectionRef} className="section-slide bg-gradient-slide-5 noise">
+    <section 
+      ref={sectionRef} 
+      tabIndex={0}
+      aria-label="Peak Month Slide - Most active training month"
+      className="section-slide bg-gradient-slide-5 noise focus:outline-none focus:ring-2 focus:ring-[#CCFF00]/50"
+    >
       <div className="absolute inset-0 flex flex-col items-center justify-center px-6">
         {/* Title */}
         <h2 ref={titleRef} className="text-display text-huge text-center mb-2">

@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import ProgressBar from '@/components/ProgressBar';
 import AudioWidget from '@/components/AudioWidget';
+import ActIndicator from '@/components/ui/ActIndicator';
+import CustomCursor from '@/components/ui/CustomCursor';
 import IntroSlide from '@/components/slides/IntroSlide';
 import ScaleSlide from '@/components/slides/ScaleSlide';
 import FrequencySlide from '@/components/slides/FrequencySlide';
@@ -22,6 +24,7 @@ const Index = () => {
   const [currentSection, setCurrentSection] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Scroll handling
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -39,11 +42,17 @@ const Index = () => {
 
   return (
     <div className="relative">
+      {/* Custom Cursor - Tactical Reticle */}
+      <CustomCursor />
+      
       {/* Progress Bar */}
       <ProgressBar totalSections={TOTAL_SECTIONS} currentSection={currentSection} />
       
       {/* Audio Widget */}
       <AudioWidget />
+      
+      {/* Act Indicator - Shows current narrative phase */}
+      <ActIndicator currentSlideIndex={currentSection} />
       
       {/* Main Scroll Container */}
       <div 
@@ -52,11 +61,11 @@ const Index = () => {
       >
         <IntroSlide />
         <ScaleSlide />
+        <RankingSlide />
         <FrequencySlide />
         <GrindSlide />
         <HeatmapSlide />
         <PeakMonthSlide />
-        <RankingSlide />
         <TopExercisesSlide />
         <VolumeSlide />
         <BodySlide />

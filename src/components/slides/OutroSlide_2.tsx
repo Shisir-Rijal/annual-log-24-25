@@ -6,13 +6,22 @@ const OutroSlide_2 = () => {
   const sectionRef = useRef<HTMLElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const echoGridRef = useRef<HTMLDivElement>(null);
-  const { stopBGM } = useAudio();
+  const { pauseMainBGM } = useAudio();
 
   const handleReinitiate = () => {
     // Stop the background music
-    stopBGM();
-    // Scroll back to top
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    pauseMainBGM();
+    
+    // 1. Force scroll to top immediately
+    window.scrollTo(0, 0);
+    
+    // 2. Disable browser's automatic scroll restoration (prevents jumping back down)
+    if ('scrollRestoration' in history) {
+      history.scrollRestoration = 'manual';
+    }
+
+    // 3. Hard Reload the page to reset all GSAP timelines and React state
+    window.location.reload();
   };
 
   useEffect(() => {
@@ -71,7 +80,9 @@ const OutroSlide_2 = () => {
   return (
     <section
       ref={sectionRef}
-      className="section-slide bg-black"
+      tabIndex={0}
+      aria-label="Outro Slide 2 - Cycle complete and credits"
+      className="section-slide bg-black focus:outline-none focus:ring-2 focus:ring-[#CCFF00]/50"
     >
       {/* ============================================
           LAYER 1: Base Gradient
@@ -142,13 +153,19 @@ const OutroSlide_2 = () => {
 
         {/* Credits */}
         <p className="shutdown-item font-mono text-xs text-gray-600 mb-12">
-          Semester Project by Shisir Bhattarai
+          Semester Project by Shisir Rijal
         </p>
 
         {/* Reinitiate Button */}
         <button
           onClick={handleReinitiate}
-          className="shutdown-item group relative px-8 py-4 border border-white/20 rounded-lg font-mono text-sm uppercase tracking-widest text-gray-400 hover:text-black hover:bg-[#CCFF00] hover:border-[#CCFF00] hover:shadow-[0_0_30px_rgba(204,255,0,0.5)] transition-all duration-300"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleReinitiate();
+            }
+          }}
+          className="shutdown-item group relative px-8 py-4 border border-white/20 rounded-lg font-mono text-sm uppercase tracking-widest text-gray-400 hover:text-black hover:bg-[#CCFF00] hover:border-[#CCFF00] hover:shadow-[0_0_30px_rgba(204,255,0,0.5)] transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#CCFF00]/50"
         >
           <span className="relative z-10">Reinitiate System</span>
         </button>

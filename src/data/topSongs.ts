@@ -33,8 +33,8 @@ export const TOP_SONGS = [
   },
   {
     id: 5,
-    title: "440 Babys",
-    artist: "Dante YN",
+    title: "Mandy",
+    artist: "She's Green",
     cover: "/music/covers/5.jpg",
     quote: "Push harder every rep",
     color: "#00FFFF" // Cyan Neon

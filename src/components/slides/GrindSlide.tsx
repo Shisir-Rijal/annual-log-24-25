@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useWorkoutData } from '@/context/DataProvider';
@@ -20,16 +20,236 @@ const dayAlliterations: Record<string, string> = {
 const GrindSlide = () => {
   const { data } = useWorkoutData();
   const sectionRef = useRef<HTMLElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const centerCircleRef = useRef<HTMLDivElement>(null);
-  const circleRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const listContainerRef = useRef<HTMLDivElement>(null);
+  const mvpRowRef = useRef<HTMLDivElement>(null);
+  const mvpBarRef = useRef<HTMLDivElement>(null);
+  const mvpTextRef = useRef<HTMLDivElement>(null);
+  const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const barRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const textRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   // Get weekday distribution
   const weekdayData = data ? getWeekdayDistribution(data.rawLogs) : null;
-  
-  if (!weekdayData) {
+
+  // Sort days by count (highest first) and calculate stats
+  const sortedData = useMemo(() => {
+    if (!weekdayData) return null;
+
+    const { peakDay, orbitals } = weekdayData;
+    const allDays = [peakDay, ...orbitals];
+    
+    // Sort by count descending
+    const sorted = [...allDays].sort((a, b) => b.count - a.count);
+    const maxCount = Math.max(...sorted.map(d => d.count), 1);
+    
+    return {
+      sorted,
+      maxCount,
+      winner: sorted[0],
+      rest: sorted.slice(1),
+    };
+  }, [weekdayData]);
+
+  // Animation: Loading Stats
+  useEffect(() => {
+    if (!sectionRef.current || !sortedData) return;
+
+    const ctx = gsap.context(() => {
+      const bars = barRefs.current.filter(Boolean);
+      const texts = textRefs.current.filter(Boolean);
+      const rows = rowRefs.current.filter(Boolean);
+
+      // Set initial states
+      if (headerRef.current) {
+        gsap.set(headerRef.current, { opacity: 0, y: -30 });
+      }
+
+      if (mvpRowRef.current) {
+        gsap.set(mvpRowRef.current, { opacity: 0, y: 20 });
+      }
+
+      if (mvpBarRef.current) {
+        gsap.set(mvpBarRef.current, { width: '0%' });
+      }
+
+      if (mvpTextRef.current) {
+        gsap.set(mvpTextRef.current, { opacity: 0, x: -20 });
+      }
+
+      rows.forEach((row) => {
+        if (row) gsap.set(row, { opacity: 0, y: 10 });
+      });
+
+      bars.forEach((bar) => {
+        if (bar) gsap.set(bar, { width: '0%' });
+      });
+
+      texts.forEach((text) => {
+        if (text) gsap.set(text, { opacity: 0, x: -20 });
+      });
+
+      // Create ScrollTrigger
+      ScrollTrigger.create({
+        trigger: sectionRef.current,
+        start: 'top 80%',
+        onEnter: () => {
+          const masterTimeline = gsap.timeline();
+
+          // STEP 1: Header slides down
+          if (headerRef.current) {
+            masterTimeline.to(headerRef.current, {
+              opacity: 1,
+              y: 0,
+              duration: 0.5,
+              ease: 'power3.out',
+            });
+          }
+
+          // STEP 2: MVP Row appears
+          if (mvpRowRef.current) {
+            masterTimeline.to(
+              mvpRowRef.current,
+              {
+                opacity: 1,
+                y: 0,
+                duration: 0.4,
+                ease: 'power3.out',
+              },
+              '-=0.2'
+            );
+          }
+
+          // MVP Bar expands
+          if (mvpBarRef.current) {
+            masterTimeline.to(
+              mvpBarRef.current,
+              {
+                width: '100%',
+                duration: 1,
+                ease: 'power3.out',
+              },
+              '-=0.3'
+            );
+          }
+
+          // MVP Text snaps in
+          if (mvpTextRef.current) {
+            masterTimeline.to(
+              mvpTextRef.current,
+              {
+                opacity: 1,
+                x: 0,
+                duration: 0.4,
+                ease: 'power2.out',
+              },
+              '-=0.7'
+            );
+          }
+
+          // STEP 3: Flash effect on MVP
+          if (mvpRowRef.current) {
+            masterTimeline.to(
+              mvpRowRef.current,
+              {
+                boxShadow: '0 0 40px rgba(204, 255, 0, 0.8), 0 0 60px rgba(204, 255, 0, 0.4)',
+                duration: 0.2,
+                ease: 'power2.in',
+              },
+              '-=0.1'
+            );
+            masterTimeline.to(
+              mvpRowRef.current,
+              {
+                boxShadow: '0 0 20px rgba(204, 255, 0, 0.3)',
+                duration: 0.4,
+                ease: 'power2.out',
+              }
+            );
+          }
+
+          // STEP 4: Rest of the rows (staggered)
+          rows.forEach((row, index) => {
+            if (!row) return;
+            const bar = barRefs.current[index];
+            const text = textRefs.current[index];
+            const dayData = sortedData.rest[index];
+            const widthPercent = dayData ? (dayData.count / sortedData.maxCount) * 100 : 0;
+
+            masterTimeline.to(
+              row,
+              {
+                opacity: 1,
+                y: 0,
+                duration: 0.3,
+                ease: 'power2.out',
+              },
+              index === 0 ? '-=0.2' : '-=0.15'
+            );
+
+            if (bar) {
+              masterTimeline.to(
+                bar,
+                {
+                  width: `${widthPercent}%`,
+                  duration: 0.8,
+                  ease: 'power3.out',
+                },
+                '-=0.25'
+              );
+            }
+
+            if (text) {
+              masterTimeline.to(
+                text,
+                {
+                  opacity: 1,
+                  x: 0,
+                  duration: 0.3,
+                  ease: 'power2.out',
+                },
+                '-=0.6'
+              );
+            }
+          });
+        },
+        onLeaveBack: () => {
+          // Reset all elements
+          if (headerRef.current) {
+            gsap.set(headerRef.current, { opacity: 0, y: -30 });
+          }
+          if (mvpRowRef.current) {
+            gsap.set(mvpRowRef.current, { opacity: 0, y: 20, boxShadow: 'none' });
+          }
+          if (mvpBarRef.current) {
+            gsap.set(mvpBarRef.current, { width: '0%' });
+          }
+          if (mvpTextRef.current) {
+            gsap.set(mvpTextRef.current, { opacity: 0, x: -20 });
+          }
+          rowRefs.current.forEach((row) => {
+            if (row) gsap.set(row, { opacity: 0, y: 10 });
+          });
+          barRefs.current.forEach((bar) => {
+            if (bar) gsap.set(bar, { width: '0%' });
+          });
+          textRefs.current.forEach((text) => {
+            if (text) gsap.set(text, { opacity: 0, x: -20 });
+          });
+        },
+      });
+    }, sectionRef);
+
+    return () => ctx.revert();
+  }, [sortedData]);
+
+  if (!sortedData) {
     return (
-      <section className="section-slide bg-gradient-slide-3 noise">
+      <section 
+        tabIndex={0}
+        aria-label="Grind Slide - Loading weekday distribution"
+        className="section-slide bg-gradient-slide-3 noise focus:outline-none focus:ring-2 focus:ring-[#CCFF00]/50"
+      >
         <div className="absolute inset-0 flex items-center justify-center">
           <p className="font-mono text-muted-foreground">Loading...</p>
         </div>
@@ -37,234 +257,144 @@ const GrindSlide = () => {
     );
   }
 
-  const { peakDay, orbitals } = weekdayData;
-  const allDays = [peakDay, ...orbitals];
-  const maxValue = Math.max(...allDays.map(d => d.count), 1);
-
-  // Get alliteration for peak day
-  const peakDayAlliteration = dayAlliterations[peakDay.dayName] || 'POWER';
-
-  // Animation: Orbit & Settle Timeline
-  useEffect(() => {
-    if (!containerRef.current || !sectionRef.current) return;
-
-    const ctx = gsap.context(() => {
-      const circles = circleRefs.current.filter(Boolean);
-      
-      // Helper function to get random start position based on quadrant
-      const getStartPosition = (angle: number) => {
-        // Determine quadrant based on angle
-        const normalizedAngle = ((angle + 90) % 360 + 360) % 360;
-        let xOffset = 0;
-        let yOffset = 0;
-        
-        if (normalizedAngle >= 0 && normalizedAngle < 90) {
-          // Top-right quadrant
-          xOffset = 600;
-          yOffset = -600;
-        } else if (normalizedAngle >= 90 && normalizedAngle < 180) {
-          // Top-left quadrant
-          xOffset = -600;
-          yOffset = -600;
-        } else if (normalizedAngle >= 180 && normalizedAngle < 270) {
-          // Bottom-left quadrant
-          xOffset = -600;
-          yOffset = 600;
-        } else {
-          // Bottom-right quadrant
-          xOffset = 600;
-          yOffset = 600;
-        }
-        
-        return { x: xOffset, y: yOffset };
-      };
-
-      // Set initial state for all circles (chaotic start)
-      circles.forEach((circle, index) => {
-        if (!circle) return;
-        
-        const angle = (index * 360) / 7 - 90;
-        const startPos = getStartPosition(angle);
-        const randomRotation = (Math.random() - 0.5) * 360; // Random rotation between -180 and 180
-        
-        gsap.set(circle, {
-          opacity: 0,
-          scale: 3,
-          rotation: randomRotation,
-          x: startPos.x,
-          y: startPos.y,
-        });
-      });
-
-      // Set initial state for center circle
-      if (centerCircleRef.current) {
-        gsap.set(centerCircleRef.current, {
-          opacity: 0,
-          scale: 0.5,
-        });
-      }
-
-      // Create ScrollTrigger
-      ScrollTrigger.create({
-        trigger: sectionRef.current,
-        start: 'top 80%',
-        onEnter: () => {
-          // Create master timeline
-          const masterTimeline = gsap.timeline();
-
-          // Animate center circle first (the sun)
-          if (centerCircleRef.current) {
-            masterTimeline.to(centerCircleRef.current, {
-              opacity: 1,
-              scale: 1,
-              duration: 1.2,
-              ease: 'power3.out',
-            });
-          }
-
-          // Animate each planet with orbit & settle effect
-          circles.forEach((circle, index) => {
-            if (!circle) return;
-            
-            // The final position is already set in CSS (left/top in %)
-            // We animate from the chaotic start position (set in gsap.set) to 0,0
-            // which means "back to the CSS-defined position"
-            
-            // Add to timeline with stagger
-            masterTimeline.to(
-              circle,
-              {
-                opacity: 1,
-                scale: 1,
-                rotation: 0, // Settle to perfect readable orientation
-                x: 0, // Return to CSS-defined position
-                y: 0, // Return to CSS-defined position
-                duration: 3.5, // Long cinematic journey
-                ease: 'elastic.out(1, 0.5)', // Smooth bounce on arrival
-              },
-              index === 0 ? '+=0.3' : '-=2.5' // Overlap animations but with stagger
-            );
-          });
-
-          // Slow rotation animation for the container (solar system effect)
-          // Start after planets have settled
-          if (containerRef.current) {
-            masterTimeline.to(
-              containerRef.current,
-              {
-                rotation: 360,
-                duration: 60, // Very slow rotation (60 seconds for full rotation)
-                ease: 'none',
-                repeat: -1,
-              },
-              '-=1' // Start slightly before planets fully settle
-            );
-          }
-        },
-        onLeaveBack: () => {
-          // Reset on scroll back
-          if (centerCircleRef.current) {
-            gsap.set(centerCircleRef.current, { opacity: 0, scale: 0.5 });
-          }
-          circles.forEach((circle, index) => {
-            if (!circle) return;
-            const angle = (index * 360) / 7 - 90;
-            const startPos = getStartPosition(angle);
-            const randomRotation = (Math.random() - 0.5) * 360;
-            gsap.set(circle, {
-              opacity: 0,
-              scale: 3,
-              rotation: randomRotation,
-              x: startPos.x,
-              y: startPos.y,
-            });
-          });
-          if (containerRef.current) {
-            gsap.killTweensOf(containerRef.current);
-          }
-        },
-      });
-    }, sectionRef);
-
-    return () => ctx.revert();
-  }, [weekdayData, allDays, maxValue]);
+  const { winner, rest, maxCount } = sortedData;
+  const winnerAlliteration = dayAlliterations[winner.dayName] || 'POWER';
 
   return (
-    <section ref={sectionRef} className="section-slide bg-gradient-slide-3 noise">
-      <div className="absolute inset-0 flex flex-col items-center justify-center px-6">
-        {/* Title */}
-        <h2 className="text-display text-huge text-center mb-2">
-          <span className="text-primary neon-text">{peakDay.dayName}</span>
-          <br />
-          <span className="text-foreground">{peakDayAlliteration}</span>
-        </h2>
-        
-        <p className="font-mono text-sm text-muted-foreground mb-12">
-          YOUR FAVORITE DAY TO LIFT
-        </p>
-        
-        {/* Radial Chart Container */}
-        <div id="chart-container" className="chart-container max-w-lg gsap-chart">
-          <div 
-            ref={containerRef}
-            className="relative w-64 h-64 md:w-80 md:h-80"
-            style={{ transformOrigin: 'center center' }}
+    <section 
+      ref={sectionRef} 
+      tabIndex={0}
+      aria-label="Grind Slide - Peak weekday analysis"
+      className="section-slide bg-gradient-slide-3 noise focus:outline-none focus:ring-2 focus:ring-[#CCFF00]/50"
+    >
+      <div className="absolute inset-0 flex flex-col items-center justify-center px-6 pt-24 md:pt-20">
+        {/* Header */}
+        <div ref={headerRef} className="text-center mb-8 md:mb-12">
+          <h2 className="text-display text-4xl md:text-5xl mb-2">
+            <span className="text-primary neon-text">{winner.dayName}</span>
+            <br />
+            <span className="text-foreground">{winnerAlliteration}</span>
+          </h2>
+          <p className="font-mono text-sm text-muted-foreground tracking-widest">
+            YOUR FAVORITE DAY TO LIFT
+          </p>
+        </div>
+
+        {/* The List Container */}
+        <div 
+          ref={listContainerRef}
+          className="w-full max-w-xl md:max-w-2xl flex flex-col gap-3"
+        >
+          {/* Row 1: The Winner / MVP */}
+          <div
+            ref={mvpRowRef}
+            className="relative h-20 md:h-24 bg-zinc-900/80 rounded-lg overflow-hidden border border-primary/30"
+            style={{ boxShadow: '0 0 20px rgba(204, 255, 0, 0.3)' }}
           >
-            {/* Center Circle - The Sun */}
-            <div 
-              ref={centerCircleRef}
-              className="absolute inset-1/4 rounded-full bg-secondary/50 flex items-center justify-center"
-              style={{ opacity: 0 }}
+            {/* Bar Background */}
+            <div
+              ref={mvpBarRef}
+              className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary/40 via-primary/30 to-primary/20"
+              style={{ width: '0%' }}
+            />
+
+            {/* Content */}
+            <div
+              ref={mvpTextRef}
+              className="relative z-10 h-full flex items-center justify-between px-4 md:px-6"
             >
-              <div className="text-center">
-                <p className="text-stat text-xl md:text-2xl text-primary">{peakDay.count}</p>
-                <p className="font-mono text-[10px] text-muted-foreground">{peakDay.dayName}</p>
+              <div className="flex items-center gap-3 md:gap-4">
+                {/* MVP Badge */}
+                <div className="flex flex-col items-center justify-center bg-primary/20 rounded px-2 py-1 border border-primary/50">
+                  <span className="font-mono text-[10px] text-primary font-bold">PEAK</span>
+                </div>
+                
+                {/* Day Info */}
+                <div>
+                  <p className="font-display text-xl md:text-2xl font-bold text-foreground uppercase tracking-wide">
+                    {winnerAlliteration}
+                  </p>
+                  <p className="font-mono text-xs text-muted-foreground">
+                    {winner.dayName}
+                  </p>
+                </div>
+              </div>
+
+              {/* Count */}
+              <div className="text-right">
+                <p className="font-mono text-3xl md:text-4xl font-bold text-primary">
+                  {winner.count}
+                </p>
+                <p className="font-mono text-[10px] text-muted-foreground uppercase">sessions</p>
               </div>
             </div>
-            
-            {/* Day Segments - The Planets */}
-            {allDays.map((day, index) => {
-              // Calculate angle: start from top (-90) and distribute evenly
-              // Peak day should be at the top (index 0)
-              const angle = (index * 360) / 7 - 90;
-              // Radius based on count (normalized to maxValue)
-              const normalizedCount = day.count / maxValue;
-              const radius = 45 + normalizedCount * 35;
-              const x = 50 + radius * Math.cos((angle * Math.PI) / 180);
-              const y = 50 + radius * Math.sin((angle * Math.PI) / 180);
-              
-              const isPeakDay = index === 0;
-              
-              return (
+          </div>
+
+          {/* Rows 2-7: The Rest */}
+          {rest.map((day, index) => {
+            const widthPercent = (day.count / maxCount) * 100;
+            const alliteration = dayAlliterations[day.dayName] || '';
+
+            return (
+              <div
+                key={day.dayName}
+                ref={(el) => {
+                  rowRefs.current[index] = el;
+                }}
+                className="relative h-12 md:h-14 bg-zinc-900/50 rounded-lg overflow-hidden border border-zinc-800/50"
+              >
+                {/* Bar Background */}
                 <div
-                  key={`${day.dayName}-${index}`}
                   ref={(el) => {
-                    circleRefs.current[index] = el;
+                    barRefs.current[index] = el;
                   }}
-                  className="day-circle absolute"
-                  style={{
-                    left: `${x}%`,
-                    top: `${y}%`,
-                    transform: 'translate(-50%, -50%)',
-                    opacity: 0,
+                  className="absolute inset-y-0 left-0 bg-zinc-700/50"
+                  style={{ width: '0%' }}
+                />
+
+                {/* Content */}
+                <div
+                  ref={(el) => {
+                    textRefs.current[index] = el;
                   }}
+                  className="relative z-10 h-full flex items-center justify-between px-4 md:px-6"
                 >
-                  <div 
-                    className={`w-20 h-20 md:w-28 md:h-28 rounded-full flex flex-col items-center justify-center text-xs md:text-sm font-mono font-bold transition-all ${
-                      isPeakDay
-                        ? 'bg-primary text-primary-foreground neon-glow' 
-                        : 'bg-secondary text-foreground'
-                    }`}
-                  >
-                    <span className="mb-1">{day.shortName}</span>
-                    {day.count > 0 && (
-                      <span className="text-[10px] md:text-xs opacity-70">{day.count}</span>
-                    )}
+                  <div className="flex items-center gap-3 md:gap-4">
+                    {/* Rank */}
+                    <span className="font-mono text-xs text-zinc-500 w-4">
+                      {index + 2}
+                    </span>
+                    
+                    {/* Day Abbr */}
+                    <span className="font-mono text-sm md:text-base font-bold text-foreground w-10">
+                      {day.shortName}
+                    </span>
+
+                    {/* Alliteration (hidden on mobile) */}
+                    <span className="hidden md:block font-mono text-xs text-zinc-500 uppercase tracking-wider">
+                      {alliteration}
+                    </span>
+                  </div>
+
+                  {/* Count */}
+                  <div className="flex items-center gap-2">
+                    {/* Visual indicator of relative size */}
+                    <div className="hidden md:flex items-center gap-1">
+                      {Array.from({ length: Math.ceil(widthPercent / 20) }).map((_, i) => (
+                        <div
+                          key={i}
+                          className="w-1 h-3 bg-zinc-600 rounded-sm"
+                        />
+                      ))}
+                    </div>
+                    <span className="font-mono text-lg md:text-xl font-bold text-foreground">
+                      {day.count}
+                    </span>
                   </div>
                 </div>
-              );
-            })}
-          </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>

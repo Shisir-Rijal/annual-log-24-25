@@ -93,7 +93,11 @@ const HeatmapSlide = () => {
   }, []);
 
   return (
-    <section className="section-slide bg-gradient-slide-5 noise">
+    <section 
+      tabIndex={0}
+      aria-label="Heatmap Slide - Workout consistency over 12 months"
+      className="section-slide bg-gradient-slide-5 noise focus:outline-none focus:ring-2 focus:ring-[#CCFF00]/50"
+    >
       <div className="absolute inset-0 flex flex-col items-center justify-center px-6">
         {/* Header */}
         <div className="mb-8 text-center">
@@ -104,7 +108,7 @@ const HeatmapSlide = () => {
           </h2>
           
           <p className="font-mono text-sm text-muted-foreground mb-10">
-            CONSISTENCY OVER 5 MONTHS
+            CONSISTENCY OVER 12 MONTHS
           </p>
         </div>
 
